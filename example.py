@@ -15,7 +15,7 @@ last_state = None
 
 while not done:
     last_state = real_env.s
-    agent = Mcts(2, 2000, observation, sim_env, ucb1, 500)
+    agent = Mcts(2, 2000, observation, sim_env, ucb1, 500, 0.3)
     action = agent.fit()
     observation, reward, done, _ = real_env.step(action)
     print(f"S: {last_state} A: {action}, S': {real_env.s}, R: {reward}")
