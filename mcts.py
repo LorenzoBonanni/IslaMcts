@@ -20,38 +20,6 @@ class Mcts:
         return self.action_selection_fn(self.root.total, self.C, self.root.visit_actions, self.root.n)
 
 
-class ActionNode:
-    def __init__(self, data, env, C, action_selection_fn):
-        self.data = data
-        self.env = copy(env)
-        self.total = 0
-        self.n = 0
-        self.C = C
-        self.children = {}
-        # self.visit_children = {}
-        self.action_selection_fn = action_selection_fn
-
-    def build_tree(self, max_depth) -> float:
-        observation, _, _, _ = self.env.step(self.data)
-        state = self.children.get(observation, None)
-        if state is None:
-            state = StateNode(observation, self.env, self.C, self.action_selection_fn)
-            self.children[observation] = state
-            # TODO set rollout max depth
-            # rollout
-            reward = state.rollout(max_depth)
-        else:
-            # rollout
-            reward = state.build_tree(max_depth)
-
-        # backpropagation
-        self.total += reward
-        self.n += 1
-        state.n += 1
-        state.total += reward
-        return reward
-
-
 class StateNode:
     def __init__(self, data, env, C, action_selection_fn):
         self.data = data
@@ -69,7 +37,10 @@ class StateNode:
         reward = 0
         depth = 0
         while not done and depth < max_depth:
-            _, reward, done, _ = curr_env.step(curr_env.action_space.sample())
+            # print(f"State: {curr_env.s}")
+            sampled_action = curr_env.action_space.sample()
+            obs, reward, done, _ = curr_env.step(sampled_action)
+            # print(f"action:{sampled_action}, s':{curr_env.s}")
             depth += 1
         return reward
 
@@ -85,4 +56,39 @@ class StateNode:
         reward = child.build_tree(max_depth)
         self.n += 1
         self.visit_actions[action] += 1
+        return reward
+
+
+class ActionNode:
+    def __init__(self, data, env, C, action_selection_fn):
+        self.data = data
+        self.env = copy(env)
+        self.total = 0
+        self.n = 0
+        self.C = C
+        self.children = {}
+        self.action_selection_fn = action_selection_fn
+
+    def build_tree(self, max_depth) -> float:
+        observation, reward, terminal, _ = self.env.step(self.data)
+        state = self.children.get(observation, None)
+        if state is None:
+            state = StateNode(observation, self.env, self.C, self.action_selection_fn)
+            self.children[observation] = state
+            # rollout
+            reward = state.rollout(max_depth)
+        else:
+            # go deeper the tree
+            if terminal:
+                self.total += reward
+                self.n += 1
+                return reward
+            else:
+                reward = state.build_tree(max_depth)
+
+        # backpropagation
+        self.total += reward
+        self.n += 1
+        state.n += 1
+        state.total += reward
         return reward
