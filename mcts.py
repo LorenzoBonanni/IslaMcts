@@ -1,3 +1,5 @@
+import gc
+from collections import OrderedDict
 from copy import copy, deepcopy
 
 import numpy as np
@@ -31,17 +33,18 @@ class Mcts:
         :return: the best action
         """
         for s in range(self.n_sim):
-            self.env.reset()
             self.env.s = self.root_data
             self.root.build_tree(self.max_depth)
 
         # SELECT USING Q-VALUE
         # Q-VAL total / n_visit
+        self.root.actions = OrderedDict(sorted(self.root.actions.items()))
+
         vals = np.array([node.total for node in self.root.actions.values()])
         n_visit = np.array([node.na for node in self.root.actions.values()])
         q_val = vals / n_visit
         self.q_values = q_val
-        return np.argmax(q_val)
+        return np.random.choice(np.flatnonzero(q_val == q_val.max()))
 
 
 class StateNode:
@@ -55,7 +58,7 @@ class StateNode:
         """
         self.gamma = gamma
         self.data = data
-        self.env = copy(env)
+        self.env = env
         # total reward
         self.total = 0
         # number of visits
@@ -73,7 +76,8 @@ class StateNode:
         :param max_depth: max depth of simulation
         :return: reward obtained from the state
         """
-        curr_env = copy(self.env)
+        # curr_env = copy(self.env)
+        curr_env = self.env
         done = False
         reward = 0
         depth = 0
@@ -130,7 +134,7 @@ class ActionNode:
         """
         self.gamma = gamma
         self.data = data
-        self.env = copy(env)
+        self.env = env
         self.total = 0
         self.na = 0
         self.C = C
@@ -144,27 +148,26 @@ class ActionNode:
         :return:
         """
         observation, instant_reward, terminal, _ = self.env.step(self.data)
-        state = self.children.get(observation, None)
-        if state is None:
-            state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma)
-            self.children[observation] = state
-            # rollout
-            delayed_reward = self.gamma * state.rollout(max_depth)
 
-            # backpropagation
-            self.total += (instant_reward + delayed_reward)
+        state = self.children.get(observation, None)
+
+        if terminal:
+            self.total += instant_reward
             self.na += 1
-            state.ns += 1
-            state.total += (instant_reward + delayed_reward)
-            return instant_reward + delayed_reward
+            return instant_reward
         else:
-            if terminal:
-                # back-propagate instant reward
-                self.total += instant_reward
+            if state is None:
+                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma)
+                self.children[observation] = state
+                # rollout
+                delayed_reward = self.gamma * state.rollout(max_depth)
+
+                # backpropagation
+                self.total += (instant_reward + delayed_reward)
                 self.na += 1
                 state.ns += 1
-                state.total += instant_reward
-                return instant_reward
+                state.total += (instant_reward + delayed_reward)
+                return instant_reward + delayed_reward
             else:
                 # go deeper the tree
                 reward = state.build_tree(max_depth)
