@@ -1,26 +1,45 @@
 import time
-from copy import copy
+from copy import copy, deepcopy
 
 import gym
-
 from action_selection_functions import ucb1
 from mcts import Mcts
 
-real_env = gym.make("FrozenLake-v1")
+action_string = {
+    0: "LEFT",
+    1: "DOWN",
+    2: "RIGHT",
+    3: "UP"
+}
+real_env = gym.make("FrozenLake-v1", is_slippery=False)
+# real_env = gym.make("Taxi-v3")
 observation = real_env.reset()
+real_env.s = real_env.unwrapped.s = 9
 real_env.render()
-sim_env = copy(real_env)
 done = False
 last_state = None
 
-while not done:
-    last_state = real_env.s
-    agent = Mcts(2, 2000, observation, sim_env, ucb1, 500, 0.3)
-    action = agent.fit()
-    observation, reward, done, _ = real_env.step(action)
-    print(f"S: {last_state} A: {action}, S': {real_env.s}, R: {reward}")
-    time.sleep(0.5)
-    real_env.render()
+observation, reward, done, _ = real_env.step(2)
+real_env.s = real_env.unwrapped.s
+real_env.render()
 
-time.sleep(2)
-real_env.close()
+# while not done:
+while not done:
+    last_state = real_env.unwrapped.s
+    agent = Mcts(
+        C=90,
+        n_sim=1000,
+        root_data=observation,
+        env=copy(real_env.unwrapped),
+        action_selection_fn=ucb1,
+        max_depth=1000,
+        gamma=0.2
+    )
+    action = agent.fit()
+    print(agent.q_values)
+    observation, reward, done, _ = real_env.step(action)
+    real_env.s = real_env.unwrapped.s
+    print(f"S: {last_state} A: {action_string[action]}, S': {real_env.unwrapped.s}, R: {reward}")
+    real_env.render()
+    time.sleep(0.5)
+# real_env.close()

@@ -1,6 +1,7 @@
-from copy import copy
+from copy import copy, deepcopy
 
 import numpy as np
+import random
 from gym import Env
 
 
@@ -15,11 +16,13 @@ class Mcts:
         :param max_depth: max depth during rollout
         :param gamma: discount factor
         """
+        self.q_values = None
         self.C = C
         self.n_sim = n_sim
         self.max_depth = max_depth
-        self.env = copy(env)
+        self.env = env
         self.action_selection_fn = action_selection_fn
+        self.root_data = root_data
         self.root = StateNode(root_data, env, C, self.action_selection_fn, gamma)
 
     def fit(self) -> int:
@@ -28,9 +31,17 @@ class Mcts:
         :return: the best action
         """
         for s in range(self.n_sim):
+            self.env.reset()
+            self.env.s = self.root_data
             self.root.build_tree(self.max_depth)
 
-        return self.action_selection_fn(self.root.total, self.C, self.root.visit_actions, self.root.n)
+        # SELECT USING Q-VALUE
+        # Q-VAL total / n_visit
+        vals = np.array([node.total for node in self.root.actions.values()])
+        n_visit = np.array([node.na for node in self.root.actions.values()])
+        q_val = vals / n_visit
+        self.q_values = q_val
+        return np.argmax(q_val)
 
 
 class StateNode:
@@ -48,7 +59,7 @@ class StateNode:
         # total reward
         self.total = 0
         # number of visits
-        self.n = 0
+        self.ns = 0
         # number of visits for each child action
         self.visit_actions = np.zeros(env.action_space.n)
         # dictionary containing mapping between action number and corresponding action node
@@ -64,13 +75,20 @@ class StateNode:
         """
         curr_env = copy(self.env)
         done = False
-        total_reward = 0
+        reward = 0
         depth = 0
-        while not done and depth < max_depth:
-            sampled_action = curr_env.action_space.sample()
+        while not done:
+            # sampled_action = curr_env.action_space.sample()
+            # TODO make prettier
+            # random action
+            indices = list(range(curr_env.action_space.n))
+            probs = [1 / len(indices)] * len(indices)
+            sampled_action = random.choices(population=indices, weights=probs)[0]
+
+            # execute action
             obs, reward, done, _ = curr_env.step(sampled_action)
             depth += 1
-        return total_reward
+        return reward
 
     def build_tree(self, max_depth):
         """
@@ -78,16 +96,24 @@ class StateNode:
         :param max_depth:  max depth of simulation
         :return:
         """
-        curr_env = copy(self.env)
+        # curr_env = copy(self.env)
         # selection
-        action = self.action_selection_fn(self.total, self.C, self.visit_actions, self.n)
+        # avoid bias
+        if 0 in self.visit_actions:
+            indices = np.where(self.visit_actions == 0)[0]
+            # TODO may introduce prior knowledge here
+            probs = [1 / len(indices)] * len(indices)
+            action = random.choices(population=indices, weights=probs)[0]
+        else:
+            action = self.action_selection_fn(self.total, self.C, self.visit_actions, self.ns)
+
         child = self.actions.get(action, None)
         if child is None:
-            child = ActionNode(action, curr_env, self.C, self.action_selection_fn, self.gamma)
+            child = ActionNode(action, self.env, self.C, self.action_selection_fn, self.gamma)
             self.actions[action] = child
         # rollout + backpropagation
         reward = child.build_tree(max_depth)
-        self.n += 1
+        self.ns += 1
         self.visit_actions[action] += 1
         self.total += reward
         return reward
@@ -106,7 +132,7 @@ class ActionNode:
         self.data = data
         self.env = copy(env)
         self.total = 0
-        self.n = 0
+        self.na = 0
         self.C = C
         self.children = {}
         self.action_selection_fn = action_selection_fn
@@ -127,16 +153,16 @@ class ActionNode:
 
             # backpropagation
             self.total += (instant_reward + delayed_reward)
-            self.n += 1
-            state.n += 1
+            self.na += 1
+            state.ns += 1
             state.total += (instant_reward + delayed_reward)
             return instant_reward + delayed_reward
         else:
             if terminal:
                 # back-propagate instant reward
                 self.total += instant_reward
-                self.n += 1
-                state.n += 1
+                self.na += 1
+                state.ns += 1
                 state.total += instant_reward
                 return instant_reward
             else:
