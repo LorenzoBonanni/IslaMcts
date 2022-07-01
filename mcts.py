@@ -1,14 +1,14 @@
-import gc
+import random
 from collections import OrderedDict
-from copy import copy, deepcopy
 
 import numpy as np
-import random
 from gym import Env
+
+from action_selection_functions import discrete_default_policy
 
 
 class Mcts:
-    def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float):
+    def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float, rollout_selection_fn):
         """
         :param C: exploration-exploitation factor
         :param n_sim: number of simulations from root node
@@ -24,8 +24,9 @@ class Mcts:
         self.max_depth = max_depth
         self.env = env
         self.action_selection_fn = action_selection_fn
+        self.rollout_selection_fn = rollout_selection_fn
         self.root_data = root_data
-        self.root = StateNode(root_data, env, C, self.action_selection_fn, gamma)
+        self.root = StateNode(root_data, env, C, self.action_selection_fn, gamma, rollout_selection_fn)
 
     def fit(self) -> int:
         """
@@ -36,19 +37,21 @@ class Mcts:
             self.env.s = self.root_data
             self.root.build_tree(self.max_depth)
 
-        # SELECT USING Q-VALUE
-        # Q-VAL total / n_visit
+        # order actions dictionary so that action indices correspond to the action number
         self.root.actions = OrderedDict(sorted(self.root.actions.items()))
 
+        # compute q_values
         vals = np.array([node.total for node in self.root.actions.values()])
         n_visit = np.array([node.na for node in self.root.actions.values()])
         q_val = vals / n_visit
         self.q_values = q_val
+
+        # to avoid biases choose random between the actions with the highest q_value
         return np.random.choice(np.flatnonzero(q_val == q_val.max()))
 
 
 class StateNode:
-    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float):
+    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -69,6 +72,7 @@ class StateNode:
         self.actions = {}
         self.C = C
         self.action_selection_fn = action_selection_fn
+        self.rollout_selection_fn = rollout_selection_fn
 
     def rollout(self, max_depth) -> float:
         """
@@ -81,13 +85,8 @@ class StateNode:
         done = False
         reward = 0
         depth = 0
-        while not done:
-            # sampled_action = curr_env.action_space.sample()
-            # TODO make prettier
-            # random action
-            indices = list(range(curr_env.action_space.n))
-            probs = [1 / len(indices)] * len(indices)
-            sampled_action = random.choices(population=indices, weights=probs)[0]
+        while not done and depth<max_depth:
+            sampled_action = self.rollout_selection_fn(state=curr_env.s)
 
             # execute action
             obs, reward, done, _ = curr_env.step(sampled_action)
@@ -104,8 +103,9 @@ class StateNode:
         # selection
         # avoid bias
         if 0 in self.visit_actions:
-            indices = np.where(self.visit_actions == 0)[0]
-            # TODO may introduce prior knowledge here
+            # action = discrete_default_policy(self.env.action_space.n)
+            # random action
+            indices = list(range(self.env.action_space.n))
             probs = [1 / len(indices)] * len(indices)
             action = random.choices(population=indices, weights=probs)[0]
         else:
@@ -113,7 +113,7 @@ class StateNode:
 
         child = self.actions.get(action, None)
         if child is None:
-            child = ActionNode(action, self.env, self.C, self.action_selection_fn, self.gamma)
+            child = ActionNode(action, self.env, self.C, self.action_selection_fn, self.gamma, self.rollout_selection_fn)
             self.actions[action] = child
         # rollout + backpropagation
         reward = child.build_tree(max_depth)
@@ -124,7 +124,7 @@ class StateNode:
 
 
 class ActionNode:
-    def __init__(self, data, env, C, action_selection_fn, gamma):
+    def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -140,6 +140,7 @@ class ActionNode:
         self.C = C
         self.children = {}
         self.action_selection_fn = action_selection_fn
+        self.rollout_selection_fn = rollout_selection_fn
 
     def build_tree(self, max_depth) -> float:
         """
@@ -157,7 +158,7 @@ class ActionNode:
             return instant_reward
         else:
             if state is None:
-                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma)
+                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma, self.rollout_selection_fn)
                 self.children[observation] = state
                 # rollout
                 delayed_reward = self.gamma * state.rollout(max_depth)
