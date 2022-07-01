@@ -1,10 +1,7 @@
-import random
 from collections import OrderedDict
 
 import numpy as np
 from gym import Env
-
-from action_selection_functions import discrete_default_policy
 
 
 class Mcts:
@@ -64,7 +61,7 @@ class StateNode:
         self.env = env
         # total reward
         self.total = 0
-        # number of visits
+        # number of visits of the node
         self.ns = 0
         # number of visits for each child action
         self.visit_actions = np.zeros(env.action_space.n)
@@ -80,12 +77,11 @@ class StateNode:
         :param max_depth: max depth of simulation
         :return: reward obtained from the state
         """
-        # curr_env = copy(self.env)
         curr_env = self.env
         done = False
         reward = 0
         depth = 0
-        while not done and depth<max_depth:
+        while not done and depth < max_depth:
             sampled_action = self.rollout_selection_fn(state=curr_env.s)
 
             # execute action
@@ -99,19 +95,16 @@ class StateNode:
         :param max_depth:  max depth of simulation
         :return:
         """
-        # curr_env = copy(self.env)
-        # selection
-        # avoid bias
+        # SELECTION
+        # to avoid biases if there are unvisited actions we sample randomly from them
         if 0 in self.visit_actions:
-            # action = discrete_default_policy(self.env.action_space.n)
             # random action
-            indices = list(range(self.env.action_space.n))
-            probs = [1 / len(indices)] * len(indices)
-            action = random.choices(population=indices, weights=probs)[0]
+            action = np.random.choice(np.flatnonzero(self.visit_actions == 0))
         else:
             action = self.action_selection_fn(self.total, self.C, self.visit_actions, self.ns)
 
         child = self.actions.get(action, None)
+        # if child is None create a new ActionNode
         if child is None:
             child = ActionNode(action, self.env, self.C, self.action_selection_fn, self.gamma, self.rollout_selection_fn)
             self.actions[action] = child
@@ -150,14 +143,14 @@ class ActionNode:
         """
         observation, instant_reward, terminal, _ = self.env.step(self.data)
 
-        state = self.children.get(observation, None)
-
         if terminal:
             self.total += instant_reward
             self.na += 1
             return instant_reward
         else:
+            state = self.children.get(observation, None)
             if state is None:
+                # add child node
                 state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma, self.rollout_selection_fn)
                 self.children[observation] = state
                 # rollout
