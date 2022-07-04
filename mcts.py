@@ -1,11 +1,14 @@
+import subprocess
 from collections import OrderedDict
 
+import graphviz
 import numpy as np
 from gym import Env
 
 
 class Mcts:
-    def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float, rollout_selection_fn):
+    def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float,
+                 rollout_selection_fn):
         """
         :param C: exploration-exploitation factor
         :param n_sim: number of simulations from root node
@@ -45,6 +48,23 @@ class Mcts:
 
         # to avoid biases choose random between the actions with the highest q_value
         return np.random.choice(np.flatnonzero(q_val == q_val.max()))
+
+    def visualize(self, extension: str = '0'):
+        """
+        creates a visualization of the tree
+        :param extension: extension to the file name
+        :return:
+        """
+        filename = f'mcts_{extension}'
+        g = graphviz.Digraph('g', filename=f'{filename}.gv', directory='output')
+        n = 0
+        self.root.visualize(n, None, g)
+
+        # save gv file
+        g.save()
+        # render gv file to an svg
+        with open(f'output/{filename}.svg', 'w') as f:
+            subprocess.Popen(['dot', '-Tsvg', f'output/{filename}.gv'], stdout=f)
 
 
 class StateNode:
@@ -106,14 +126,38 @@ class StateNode:
         child = self.actions.get(action, None)
         # if child is None create a new ActionNode
         if child is None:
-            child = ActionNode(action, self.env, self.C, self.action_selection_fn, self.gamma, self.rollout_selection_fn)
+            child = ActionNode(action, self.env, self.C, self.action_selection_fn, self.gamma,
+                               self.rollout_selection_fn)
             self.actions[action] = child
-        # rollout + backpropagation
+        # ROLLOUT + BACKPROPAGATION
         reward = child.build_tree(max_depth)
         self.ns += 1
         self.visit_actions[action] += 1
         self.total += reward
         return reward
+
+    def visualize(self, n, father, g):
+        """
+        add the current node to the graph and recursively adds child nodes to the graph
+        :param n: the last node number
+        :param father: the father node name
+        :param g: the graph
+        :return: updated n
+        """
+        # add the node its self
+        g.attr('node', shape='circle')
+        name = f"node{n}"
+        g.node(name, f"{self.data}\nn={self.ns}\nt={self.total}")
+        # for root node father is None
+        if father is not None:
+            g.edge(father, name)
+        n += 1
+        # add its child nodes
+        for action_node in self.actions.values():
+            father = name
+            n = action_node.visualize(n, father, g)
+        # to avoid losing the updated n value every time the function end returns the most updated n value
+        return n
 
 
 class ActionNode:
@@ -143,20 +187,23 @@ class ActionNode:
         """
         observation, instant_reward, terminal, _ = self.env.step(self.data)
 
+        # if the node is terminal back-propagate instant reward
         if terminal:
             self.total += instant_reward
             self.na += 1
             return instant_reward
         else:
+            # check if the node has been already visited
             state = self.children.get(observation, None)
             if state is None:
                 # add child node
-                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma, self.rollout_selection_fn)
+                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma,
+                                  self.rollout_selection_fn)
                 self.children[observation] = state
-                # rollout
+                # ROLLOUT
                 delayed_reward = self.gamma * state.rollout(max_depth)
 
-                # backpropagation
+                # BACK-PROPAGATION
                 self.total += (instant_reward + delayed_reward)
                 self.na += 1
                 state.ns += 1
@@ -166,3 +213,25 @@ class ActionNode:
                 # go deeper the tree
                 reward = state.build_tree(max_depth)
                 return reward
+
+    def visualize(self, n, father, g):
+        """
+        add the current node to the graph and recursively adds child nodes to the graph
+        :param n: the last node number
+        :param father: the father node name
+        :param g: the graph
+        :return: updated n
+        """
+        # add the node its self
+        g.attr('node', shape='box')
+        name = f"node{n}"
+        g.node(name, f"{self.data}\nn={self.na}\nt={self.total}")
+        # connect to father node
+        g.edge(father, name)
+        n += 1
+        # add its child nodes
+        for state_node in self.children.values():
+            father = name
+            n = state_node.visualize(n, father, g)
+        # to avoid losing the updated n value every time the function end returns the most updated n value
+        return n
