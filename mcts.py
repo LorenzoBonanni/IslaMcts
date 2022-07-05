@@ -147,7 +147,7 @@ class StateNode:
         # add the node its self
         g.attr('node', shape='circle')
         name = f"node{n}"
-        g.node(name, f"{self.data}\nn={self.ns}\nt={self.total}")
+        g.node(name, f"{self.data}\nn={self.ns}\nV={(self.total/self.ns):.3f}")
         # for root node father is None
         if father is not None:
             g.edge(father, name)
@@ -225,7 +225,7 @@ class ActionNode:
         # add the node its self
         g.attr('node', shape='box')
         name = f"node{n}"
-        g.node(name, f"{self.data}\nn={self.na}\nt={self.total}")
+        g.node(name, f"{self.data}\nn={self.na}\nQ={(self.total/self.na):.3f}")
         # connect to father node
         g.edge(father, name)
         n += 1

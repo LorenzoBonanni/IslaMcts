@@ -83,12 +83,12 @@ while not done:
         rollout_selection_fn=rollout_fn
     )
     action = agent.fit()
-    # agent.visualize()
+    agent.visualize()
     print(agent.q_values)
     observation, reward, done, _ = real_env.step(action)
     real_env.s = real_env.unwrapped.s
     print(f"S: {last_state} A: {action_string[action]}, S': {real_env.unwrapped.s}, R: {reward}")
     print()
     real_env.render()
-    # break
+    break
 # real_env.close()
