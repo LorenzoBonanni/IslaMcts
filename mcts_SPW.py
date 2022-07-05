@@ -1,14 +1,14 @@
-import collections
 import subprocess
 from collections import OrderedDict
+
 import graphviz
 import numpy as np
 from gym import Env
 
 
-class Mcts:
+class MctsSpw:
     def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float,
-                 rollout_selection_fn, state_variable):
+                 rollout_selection_fn, alpha: float, k: float):
         """
         :param C: exploration-exploitation factor
         :param n_sim: number of simulations from root node
@@ -17,7 +17,8 @@ class Mcts:
         :param action_selection_fn: the function to select actions
         :param max_depth: max depth during rollout
         :param gamma: discount factor
-        :param state_variable: the name of the variable containing state information inside the environment
+        :param alpha: exponent parameter for widening
+        :param k: multiplicative parameter for widening
         """
         self.q_values = None
         self.C = C
@@ -27,8 +28,7 @@ class Mcts:
         self.action_selection_fn = action_selection_fn
         self.rollout_selection_fn = rollout_selection_fn
         self.root_data = root_data
-        self.root = StateNode(root_data, env, C, self.action_selection_fn, gamma, rollout_selection_fn, state_variable)
-        self.state_variable = state_variable
+        self.root = StateNode(root_data, env, C, self.action_selection_fn, gamma, rollout_selection_fn)
 
     def fit(self) -> int:
         """
@@ -36,7 +36,7 @@ class Mcts:
         :return: the best action
         """
         for s in range(self.n_sim):
-            self.env.__dict__[self.state_variable] = self.root_data
+            self.env.s = self.root_data
             self.root.build_tree(self.max_depth)
 
         # order actions dictionary so that action indices correspond to the action number
@@ -70,7 +70,7 @@ class Mcts:
 
 
 class StateNode:
-    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn, state_variable):
+    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -92,7 +92,6 @@ class StateNode:
         self.C = C
         self.action_selection_fn = action_selection_fn
         self.rollout_selection_fn = rollout_selection_fn
-        self.state_variable = state_variable
 
     def rollout(self, max_depth) -> float:
         """
@@ -105,7 +104,7 @@ class StateNode:
         reward = 0
         depth = 0
         while not done and depth < max_depth:
-            sampled_action = self.rollout_selection_fn(state=curr_env.__dict__[self.state_variable])
+            sampled_action = self.rollout_selection_fn(state=curr_env.s)
 
             # execute action
             obs, reward, done, _ = curr_env.step(sampled_action)
@@ -130,7 +129,7 @@ class StateNode:
         # if child is None create a new ActionNode
         if child is None:
             child = ActionNode(action, self.env, self.C, self.action_selection_fn, self.gamma,
-                               self.rollout_selection_fn, self.state_variable)
+                               self.rollout_selection_fn)
             self.actions[action] = child
         # ROLLOUT + BACKPROPAGATION
         reward = child.build_tree(max_depth)
@@ -164,7 +163,7 @@ class StateNode:
 
 
 class ActionNode:
-    def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable):
+    def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -181,7 +180,6 @@ class ActionNode:
         self.children = {}
         self.action_selection_fn = action_selection_fn
         self.rollout_selection_fn = rollout_selection_fn
-        self.state_variable = state_variable
 
     def build_tree(self, max_depth) -> float:
         """
@@ -202,7 +200,7 @@ class ActionNode:
             if state is None:
                 # add child node
                 state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma,
-                                  self.rollout_selection_fn, self.state_variable)
+                                  self.rollout_selection_fn)
                 self.children[observation] = state
                 # ROLLOUT
                 delayed_reward = self.gamma * state.rollout(max_depth)
