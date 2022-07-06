@@ -3,7 +3,7 @@ from copy import copy
 import gym
 import numpy as np
 
-from action_selection_functions import ucb1, grid_policy
+from action_selection_functions import ucb1, grid_policy, discrete_default_policy
 from mcts import Mcts
 
 action_string = {
@@ -59,21 +59,24 @@ distances = {
     for r in range(4)
 }
 
-rollout_fn = grid_policy(distances, n_actions)
+# rollout_fn = grid_policy(distances, n_actions)
+rollout_fn = discrete_default_policy(n_actions)
 
 real_env = gym.make("FrozenLake-v1", is_slippery=False)
+sim_env = gym.make("FrozenLake-v1", is_slippery=False)
 observation = real_env.reset()
+sim_env.reset()
 done = False
 last_state = None
-real_env.render()
+real_env.render(mode="human")
 
 while not done:
     last_state = real_env.unwrapped.s
     agent = Mcts(
         C=90,
-        n_sim=1000,
+        n_sim=5,
         root_data=observation,
-        env=copy(real_env.unwrapped),
+        env=sim_env,
         action_selection_fn=ucb1,
         max_depth=10000,
         gamma=0.2,
@@ -81,12 +84,12 @@ while not done:
         state_variable="s"
     )
     action = agent.fit()
-    # agent.visualize()
+    agent.visualize()
     print(agent.q_values)
     observation, reward, done, _ = real_env.step(action)
     real_env.s = real_env.unwrapped.s
     print(f"S: {last_state} A: {action_string[action]}, S': {real_env.unwrapped.s}, R: {reward}")
     print()
-    real_env.render()
-    # break
+    real_env.render(mode="human")
+    break
 # real_env.close()

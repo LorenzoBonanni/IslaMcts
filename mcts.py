@@ -36,7 +36,7 @@ class Mcts:
         :return: the best action
         """
         for s in range(self.n_sim):
-            self.env.__dict__[self.state_variable] = self.root_data
+            self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = self.root_data
             self.root.build_tree(self.max_depth)
 
         # order actions dictionary so that action indices correspond to the action number
@@ -86,7 +86,7 @@ class StateNode:
         # number of visits of the node
         self.ns = 0
         # number of visits for each child action
-        self.visit_actions = np.zeros(env.action_space.n)
+        self.visit_actions = np.zeros(self.env.action_space.n)
         # dictionary containing mapping between action number and corresponding action node
         self.actions = {}
         self.C = C
@@ -215,8 +215,14 @@ class ActionNode:
                 return instant_reward + delayed_reward
             else:
                 # go deeper the tree
-                reward = state.build_tree(max_depth)
-                return reward
+                delayed_reward = self.gamma * state.build_tree(max_depth)
+
+                # BACK-PROPAGATION
+                self.total += (instant_reward + delayed_reward)
+                self.na += 1
+                state.ns += 1
+                state.total += (instant_reward + delayed_reward)
+                return instant_reward + delayed_reward
 
     def visualize(self, n, father, g):
         """
