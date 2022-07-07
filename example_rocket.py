@@ -1,13 +1,10 @@
 from collections.abc import Hashable
-from copy import copy, deepcopy
 
 import gym
 import numpy as np
 
 from action_selection_functions import ucb1, discrete_default_policy
-from mcts import Mcts
-from mcts_Continuous import MctsHashStateContinuous
-from mcts_hashstate import MctsHashState
+from agents.mcts_continuous import MctsHashStateContinuous
 
 time = np.arange(0, 0.4, 0.001)
 def generate_plots(godd, state_log, extra_log):
@@ -73,7 +70,7 @@ def main():
         #         state_variable="_state",
         #     )
         # else:
-        #     agent = MctsHashState(
+        #     agent = MctsHash(
         #         C=2,
         #         n_sim=100,
         #         root_data=observation,

@@ -202,10 +202,8 @@ class ActionNode:
                                   self.rollout_selection_fn, self.state_variable)
                 state.terminal = True
                 self.children[observation] = state
-            # ORIGINAL
             self.total += instant_reward
             self.na += 1
-            # MODIFIED
             state.ns += 1
             return instant_reward
         else:
