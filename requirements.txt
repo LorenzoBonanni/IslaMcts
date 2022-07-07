@@ -3,4 +3,4 @@ numpy~=1.23.0
 graphviz~=0.20
 matplotlib
 gym[toy_text]
-https://github.com/osannolik/gym-goddard.git
+git+https://github.com/osannolik/gym-goddard

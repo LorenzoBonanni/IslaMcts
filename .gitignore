@@ -358,3 +358,4 @@ dmypy.json
 cython_debug/
 
 output/
+gym-goddard/

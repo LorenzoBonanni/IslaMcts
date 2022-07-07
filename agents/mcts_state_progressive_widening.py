@@ -23,13 +23,14 @@ class MctsStateProgressiveWidening(Mcts):
                          state_variable)
 
         self.root = StateNodeProgressiveWidening(root_data, env, C, self.action_selection_fn, gamma,
-                                       rollout_selection_fn, state_variable, alpha, k)
+                                                 rollout_selection_fn, state_variable, alpha, k)
         self.alpha = alpha
         self.k = k
 
 
 class StateNodeProgressiveWidening(StateNode):
-    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn, state_variable,  alpha: float, k: float):
+    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn,
+                 state_variable, alpha: float, k: float):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -58,11 +59,13 @@ class StateNodeProgressiveWidening(StateNode):
         child = self.actions.get(action, None)
         # if child is None create a new ActionNode
         if child is None:
-
             child = ActionNodeProgressiveWidening(action, self.env, self.C, self.action_selection_fn, self.gamma,
-                                        self.rollout_selection_fn, self.state_variable, self.alpha, self.k)
+                                                  self.rollout_selection_fn, self.state_variable, self.alpha, self.k)
             self.visit_actions[action] = 0
             self.actions[action] = child
+
+        # in order to get instant_reward set the state into the environment to the current state
+        self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = self.data
         # ROLLOUT + BACKPROPAGATION
         reward = child.build_tree(max_depth)
         self.ns += 1
@@ -70,27 +73,10 @@ class StateNodeProgressiveWidening(StateNode):
         self.total += reward
         return reward
 
-    def rollout(self, max_depth) -> float:
-        """
-        Random play out until max depth or a terminal state is reached
-        :param max_depth: max depth of simulation
-        :return: reward obtained from the state
-        """
-        curr_env = self.env
-        done = False
-        reward = 0
-        depth = 0
-        while not done and depth < max_depth:
-            sampled_action = curr_env.action_space.sample()[0]
-
-            # execute action
-            obs, reward, done, _ = curr_env.step(sampled_action)
-            depth += 1
-        return reward
-
 
 class ActionNodeProgressiveWidening(ActionNode):
-    def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable, alpha: float, k: float):
+    def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable, alpha: float,
+                 k: float):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -108,11 +94,9 @@ class ActionNodeProgressiveWidening(ActionNode):
         :param max_depth:  max depth of simulation
         :return:
         """
-
-        if len(self.children) < self.k * (self.na**self.alpha):
-            # TODO expand
-            observation, instant_reward, terminal, _ = self.env.step(self.data)
-
+        observation, instant_reward, terminal, _ = self.env.step(self.data)
+        if len(self.children) < self.k * (self.na ** self.alpha):
+            # EXPAND
             # if the node is terminal back-propagate instant reward
             if terminal:
                 state = self.children.get(observation, None)
@@ -154,14 +138,13 @@ class ActionNodeProgressiveWidening(ActionNode):
                     self.na += 1
                     return instant_reward + delayed_reward
         else:
-            # TODO SAMPLE FROM VISITED STATES
+            # SAMPLE FROM VISITED STATES
             key = random.choices(
                 population=self.children.keys(),
-                weights=self.na/np.array(self.children.values())
+                weights=self.na / np.array(self.children.values())
             )[0]
             state = self.children[key]
             self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = state.data
             # go deeper the tree
             delayed_reward = self.gamma * state.build_tree(max_depth)
-            return reward
-
+            return instant_reward + delayed_reward
