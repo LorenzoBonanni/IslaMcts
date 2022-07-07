@@ -3,7 +3,7 @@ from gym import Env
 from mcts import ActionNode, StateNode, Mcts
 
 
-class MctsHashStateContinuous(Mcts):
+class MctsContinuous(Mcts):
     def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float,
                  rollout_selection_fn, state_variable):
         """
@@ -19,12 +19,13 @@ class MctsHashStateContinuous(Mcts):
         super().__init__(C, n_sim, root_data, env, action_selection_fn, max_depth, gamma, rollout_selection_fn,
                          state_variable)
 
-        self.root = StateNodeHashStateContinuous(root_data, env, C, self.action_selection_fn, gamma,
-                                       rollout_selection_fn, state_variable)
+        self.root = StateNodeContinuous(root_data, env, C, self.action_selection_fn, gamma,
+                                        rollout_selection_fn, state_variable)
 
 
-class StateNodeHashStateContinuous(StateNode):
-    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn, state_variable):
+class StateNodeContinuous(StateNode):
+    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn,
+                 state_variable):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -43,21 +44,20 @@ class StateNodeHashStateContinuous(StateNode):
         """
         # SELECTION
         # to avoid biases if there are unvisited actions we sample randomly from them
-        action = self.env.action_space.sample()[0]
-
-        child = self.actions.get(action, None)
+        action = self.env.action_space.sample()
+        bytes_action = action.tobytes()
+        child = self.actions.get(bytes_action, None)
         # if child is None create a new ActionNode
         if child is None:
+            child = ActionNodeContinuous(action, self.env, self.C, self.action_selection_fn, self.gamma,
+                                         self.rollout_selection_fn, self.state_variable)
+            self.actions[bytes_action] = child
+            self.visit_actions[bytes_action] = 0
 
-            child = ActionNodeHashStateContinuous(action, self.env, self.C, self.action_selection_fn, self.gamma,
-                                        self.rollout_selection_fn, self.state_variable)
-            self.visit_actions[action] = 0
-            self.actions[action] = child
-        # ROLLOUT + BACKPROPAGATION
         reward = child.build_tree(max_depth)
         self.ns += 1
-        self.visit_actions[action] += 1
-        self.total += reward
+        self.visit_actions[bytes_action] += 1
+        self.total += self.gamma * reward
         return reward
 
     def rollout(self, max_depth) -> float:
@@ -71,7 +71,7 @@ class StateNodeHashStateContinuous(StateNode):
         reward = 0
         depth = 0
         while not done and depth < max_depth:
-            sampled_action = curr_env.action_space.sample()[0]
+            sampled_action = curr_env.action_space.sample()
 
             # execute action
             obs, reward, done, _ = curr_env.step(sampled_action)
@@ -79,7 +79,7 @@ class StateNodeHashStateContinuous(StateNode):
         return reward
 
 
-class ActionNodeHashStateContinuous(ActionNode):
+class ActionNodeContinuous(ActionNode):
     def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable):
         """
         :param C: exploration-exploitation factor
@@ -100,27 +100,40 @@ class ActionNodeHashStateContinuous(ActionNode):
 
         # if the node is terminal back-propagate instant reward
         if terminal:
+            state = self.children.get(observation, None)
+            # add terminal states for visualization
+            if state is None:
+                # add child node
+                state = StateNodeContinuous(observation, self.env, self.C, self.action_selection_fn, self.gamma,
+                                            self.rollout_selection_fn, self.state_variable)
+                state.terminal = True
+                self.children[observation] = state
             self.total += instant_reward
             self.na += 1
+            state.ns += 1
             return instant_reward
         else:
             # check if the node has been already visited
-            state = self.children.get(observation.tobytes(), None)
+            state = self.children.get(observation, None)
             if state is None:
                 # add child node
-                state = StateNodeHashStateContinuous(observation, self.env, self.C, self.action_selection_fn, self.gamma,
-                                           self.rollout_selection_fn, self.state_variable)
-                self.children[observation.tobytes()] = state
+                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma,
+                                  self.rollout_selection_fn, self.state_variable)
+                self.children[observation] = state
                 # ROLLOUT
                 delayed_reward = self.gamma * state.rollout(max_depth)
 
                 # BACK-PROPAGATION
-                self.total += (instant_reward + delayed_reward)
                 self.na += 1
                 state.ns += 1
+                self.total += (instant_reward + delayed_reward)
                 state.total += (instant_reward + delayed_reward)
                 return instant_reward + delayed_reward
             else:
                 # go deeper the tree
-                reward = state.build_tree(max_depth)
-                return reward
+                delayed_reward = self.gamma * state.build_tree(max_depth)
+
+                # # BACK-PROPAGATION
+                self.total += (instant_reward + delayed_reward)
+                self.na += 1
+                return instant_reward + delayed_reward
