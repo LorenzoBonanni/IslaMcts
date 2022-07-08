@@ -1,11 +1,11 @@
 from collections.abc import Hashable
 
-from agents.mcts import Mcts
-from agents.mcts_continuous import MctsContinuous
-from agents.mcts_continuous_hash import MctsContinuousHash
-from agents.mcts_hash import MctsHash
-from agents.mcts_state_progressive_widening import MctsStateProgressiveWidening
-from agents.mcts_state_progressive_widening_hash import MctsStateProgressiveWideningHash
+from src.agents.mcts import Mcts
+from src.agents.mcts_continuous import MctsContinuous
+from src.agents.mcts_continuous_hash import MctsContinuousHash
+from src.agents.mcts_hash import MctsHash
+from src.agents.mcts_state_progressive_widening import MctsStateProgressiveWidening
+from src.agents.mcts_state_progressive_widening_hash import MctsStateProgressiveWideningHash
 
 
 class AgentFactory:

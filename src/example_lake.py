@@ -2,7 +2,7 @@ import gym
 import numpy as np
 
 from action_selection_functions import ucb1, discrete_default_policy
-from agents.mcts import Mcts
+from src.agents.mcts import Mcts
 
 action_string = {
     0: "LEFT",

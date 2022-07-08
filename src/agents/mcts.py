@@ -1,14 +1,16 @@
 import subprocess
 from collections import OrderedDict
+from typing import Callable, Any, Union
 
 import graphviz
+import gym
 import numpy as np
-from gym import Env
+from graphviz import Digraph
 
 
 class Mcts:
-    def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float,
-                 rollout_selection_fn, state_variable):
+    def __init__(self, root_data: Any, env: gym.Env, n_sim: int, C: Union[float, int], action_selection_fn: Callable,
+                 gamma: float, rollout_selection_fn: Callable, state_variable: str, max_depth: int):
         """
         :param C: exploration-exploitation factor
         :param n_sim: number of simulations from root node
@@ -51,7 +53,7 @@ class Mcts:
         # to avoid biases choose random between the actions with the highest q_value
         return np.random.choice(np.flatnonzero(q_val == q_val.max()))
 
-    def visualize(self, extension: str = '0'):
+    def visualize(self, extension: str = '0') -> None:
         """
         creates a visualization of the tree
         :param extension: extension to the file name
@@ -70,8 +72,8 @@ class Mcts:
 
 
 class StateNode:
-    def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn,
-                 state_variable):
+    def __init__(self, data: Any, env: gym.Env, C: Union[float, int], action_selection_fn: Callable, gamma: float,
+                 rollout_selection_fn: Callable, state_variable: str):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -96,7 +98,7 @@ class StateNode:
         self.state_variable = state_variable
         self.terminal = False
 
-    def rollout(self, max_depth) -> float:
+    def rollout(self, max_depth: int) -> float:
         """
         Random play out until max depth or a terminal state is reached
         :param max_depth: max depth of simulation
@@ -114,7 +116,7 @@ class StateNode:
             depth += 1
         return reward
 
-    def build_tree(self, max_depth):
+    def build_tree(self, max_depth: int):
         """
         go down the tree until a leaf is reached and do rollout from that
         :param max_depth:  max depth of simulation
@@ -137,7 +139,7 @@ class StateNode:
         self.total += self.gamma * reward
         return reward
 
-    def visualize(self, n, father, g):
+    def visualize(self, n: int, father: Union[str, None], g: Digraph):
         """
         add the current node to the graph and recursively adds child nodes to the graph
         :param n: the last node number
@@ -165,7 +167,8 @@ class StateNode:
 
 
 class ActionNode:
-    def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable):
+    def __init__(self, data: Any, env: gym.Env, C: Union[float, int], action_selection_fn: Callable, gamma: float,
+                 rollout_selection_fn: Callable, state_variable: str):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -184,7 +187,7 @@ class ActionNode:
         self.rollout_selection_fn = rollout_selection_fn
         self.state_variable = state_variable
 
-    def build_tree(self, max_depth) -> float:
+    def build_tree(self, max_depth: int) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
         :param max_depth:  max depth of simulation
