@@ -4,7 +4,6 @@ import gym
 import numpy as np
 
 from action_selection_functions import ucb1, discrete_default_policy
-from agents.mcts_continuous import MctsHashStateContinuous
 
 time = np.arange(0, 0.4, 0.001)
 def generate_plots(godd, state_log, extra_log):

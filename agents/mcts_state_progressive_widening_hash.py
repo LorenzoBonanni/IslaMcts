@@ -3,10 +3,12 @@ import random
 import numpy as np
 from gym import Env
 
-from mcts import ActionNode, StateNode, Mcts
+from agents.mcts_hash import MctsHash, StateNodeHash, ActionNodeHash
+from mcts import StateNode
 
 
-class MctsStateProgressiveWidening(Mcts):
+# TODO IMPLEMENT
+class MctsStateProgressiveWideningHash(MctsHash):
     def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float,
                  rollout_selection_fn, state_variable, alpha: float, k: float):
         """
@@ -22,13 +24,13 @@ class MctsStateProgressiveWidening(Mcts):
         super().__init__(C, n_sim, root_data, env, action_selection_fn, max_depth, gamma, rollout_selection_fn,
                          state_variable)
 
-        self.root = StateNodeProgressiveWidening(root_data, env, C, self.action_selection_fn, gamma,
-                                                 rollout_selection_fn, state_variable, alpha, k)
+        self.root = StateNodeProgressiveWideningHash(root_data, env, C, self.action_selection_fn, gamma,
+                                                     rollout_selection_fn, state_variable, alpha, k)
         self.alpha = alpha
         self.k = k
 
 
-class StateNodeProgressiveWidening(StateNode):
+class StateNodeProgressiveWideningHash(StateNodeHash):
     def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn,
                  state_variable, alpha: float, k: float):
         """
@@ -59,8 +61,9 @@ class StateNodeProgressiveWidening(StateNode):
         child = self.actions.get(action, None)
         # if child is None create a new ActionNode
         if child is None:
-            child = ActionNodeProgressiveWidening(action, self.env, self.C, self.action_selection_fn, self.gamma,
-                                                  self.rollout_selection_fn, self.state_variable, self.alpha, self.k)
+            child = ActionNodeProgressiveWideningHash(action, self.env, self.C, self.action_selection_fn, self.gamma,
+                                                      self.rollout_selection_fn, self.state_variable, self.alpha,
+                                                      self.k)
             self.visit_actions[action] = 0
             self.actions[action] = child
 
@@ -74,7 +77,7 @@ class StateNodeProgressiveWidening(StateNode):
         return reward
 
 
-class ActionNodeProgressiveWidening(ActionNode):
+class ActionNodeProgressiveWideningHash(ActionNodeHash):
     def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable, alpha: float,
                  k: float):
         """
@@ -95,31 +98,31 @@ class ActionNodeProgressiveWidening(ActionNode):
         :return:
         """
         observation, instant_reward, terminal, _ = self.env.step(self.data)
+        obs_bytes = observation.tobytes()
         if len(self.children) < self.k * (self.na ** self.alpha):
             # EXPAND
             # if the node is terminal back-propagate instant reward
             if terminal:
-                state = self.children.get(observation, None)
+                state = self.children.get(obs_bytes, None)
                 # add terminal states for visualization
                 if state is None:
                     # add child node
                     state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma,
                                       self.rollout_selection_fn, self.state_variable)
                     state.terminal = True
-                    self.children[observation] = state
+                    self.children[obs_bytes] = state
                 self.total += instant_reward
                 self.na += 1
                 state.ns += 1
                 return instant_reward
             else:
                 # check if the node has been already visited
-                state = self.children.get(observation, None)
+                state = self.children.get(obs_bytes, None)
                 if state is None:
                     # add child node
-                    state = StateNodeProgressiveWidening(observation, self.env, self.C, self.action_selection_fn,
-                                                         self.gamma,
-                                                         self.rollout_selection_fn, self.state_variable)
-                    self.children[observation] = state
+                    state = StateNodeProgressiveWideningHash(observation, self.env, self.C, self.action_selection_fn,
+                                                             self.gamma, self.rollout_selection_fn, self.state_variable)
+                    self.children[obs_bytes] = state
                     # ROLLOUT
                     delayed_reward = self.gamma * state.rollout(max_depth)
 
