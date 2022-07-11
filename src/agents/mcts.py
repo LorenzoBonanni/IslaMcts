@@ -1,17 +1,18 @@
-import subprocess
 from collections import OrderedDict
 from typing import Callable, Any, Union
+from graphviz import Digraph
 
+import subprocess
 import graphviz
 import gym
 import numpy as np
-from graphviz import Digraph
 
 
 class Mcts:
     def __init__(self, root_data: Any, env: gym.Env, n_sim: int, C: Union[float, int], action_selection_fn: Callable,
                  gamma: float, rollout_selection_fn: Callable, state_variable: str, max_depth: int):
         """
+
         :param C: exploration-exploitation factor
         :param n_sim: number of simulations from root node
         :param root_data: data of the root node
@@ -35,6 +36,7 @@ class Mcts:
     def fit(self) -> int:
         """
         Starting method, builds the tree and then gives back the best action
+
         :return: the best action
         """
         for s in range(self.n_sim):
@@ -56,9 +58,11 @@ class Mcts:
     def visualize(self, extension: str = '0') -> None:
         """
         creates a visualization of the tree
+
         :param extension: extension to the file name
         :return:
         """
+        np.set_printoptions(precision=3)
         filename = f'mcts_{extension}'
         g = graphviz.Digraph('g', filename=f'{filename}.gv', directory='output')
         n = 0
@@ -75,6 +79,7 @@ class StateNode:
     def __init__(self, data: Any, env: gym.Env, C: Union[float, int], action_selection_fn: Callable, gamma: float,
                  rollout_selection_fn: Callable, state_variable: str):
         """
+
         :param C: exploration-exploitation factor
         :param data: data of the node
         :param env: simulation environment
@@ -89,7 +94,8 @@ class StateNode:
         # number of visits of the node
         self.ns = 0
         # number of visits for each child action
-        self.visit_actions = np.zeros(self.env.action_space.n)
+        # TODO make num of actions a parameter
+        self.visit_actions = np.zeros(11)
         # dictionary containing mapping between action number and corresponding action node
         self.actions = {}
         self.C = C
@@ -101,6 +107,7 @@ class StateNode:
     def rollout(self, max_depth: int) -> float:
         """
         Random play out until max depth or a terminal state is reached
+
         :param max_depth: max depth of simulation
         :return: reward obtained from the state
         """
@@ -119,6 +126,7 @@ class StateNode:
     def build_tree(self, max_depth: int):
         """
         go down the tree until a leaf is reached and do rollout from that
+
         :param max_depth:  max depth of simulation
         :return:
         """
@@ -142,6 +150,7 @@ class StateNode:
     def visualize(self, n: int, father: Union[str, None], g: Digraph):
         """
         add the current node to the graph and recursively adds child nodes to the graph
+
         :param n: the last node number
         :param father: the father node name
         :param g: the graph
@@ -170,6 +179,7 @@ class ActionNode:
     def __init__(self, data: Any, env: gym.Env, C: Union[float, int], action_selection_fn: Callable, gamma: float,
                  rollout_selection_fn: Callable, state_variable: str):
         """
+
         :param C: exploration-exploitation factor
         :param data: data of the node
         :param env: simulation environment
@@ -190,6 +200,7 @@ class ActionNode:
     def build_tree(self, max_depth: int) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
+
         :param max_depth:  max depth of simulation
         :return:
         """
@@ -238,6 +249,7 @@ class ActionNode:
     def visualize(self, n, father, g):
         """
         add the current node to the graph and recursively adds child nodes to the graph
+
         :param n: the last node number
         :param father: the father node name
         :param g: the graph

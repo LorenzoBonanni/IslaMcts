@@ -1,11 +1,16 @@
-from collections.abc import Hashable
-
 import gym
 import numpy as np
 
 from action_selection_functions import ucb1, discrete_default_policy
+from src.agent_factory import AgentFactory
+from src.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
+from src.agents.mcts_continuous_hash import MctsContinuousHash
+from src.agents.mcts_hash import MctsHash
+from src.agents.mcts_state_progressive_widening_hash import MctsStateProgressiveWideningHash
 
 time = np.arange(0, 0.4, 0.001)
+
+
 def generate_plots(godd, state_log, extra_log):
     print("Maximum altitude reached: {}".format(godd.maximum_altitude()))
     # print("End reward: {}".format(reward_end))
@@ -14,6 +19,7 @@ def generate_plots(godd, state_log, extra_log):
     import matplotlib.pyplot as plt
 
     state_log = np.array(state_log)
+    extra_log = np.array(extra_log)
 
     f, (ax1, ax2, ax3, ax4) = plt.subplots(4)
 
@@ -33,76 +39,61 @@ def generate_plots(godd, state_log, extra_log):
     ax4.grid(True)
     ax4.set(xlabel='time [s]', ylabel='Forces [N]')
     ax4.legend(godd.extras_labels(), loc='upper right')
+    print(godd.extras_labels())
     plt.savefig('mcts_continuous.svg')
 
 
 def main():
+    # real_env = gym.make('gym_goddard:GoddardDiscrete-v0')
     real_env = gym.make('gym_goddard:Goddard-v0')
+    # sim_env = gym.make('gym_goddard:GoddardDiscrete-v0')
     sim_env = gym.make('gym_goddard:Goddard-v0')
     observation = real_env.reset()
     sim_env.reset()
-    done = False
-    last_state = None
     real_env.render()
     rollout_fn = discrete_default_policy(11)
-    hashable = True
-
-    # check if obs is hashable
-    if not isinstance(observation, Hashable):
-        hashable = False
 
     state_log = [observation]
     extra_log = []
+    agent = None
 
     for _ in time:
         last_state = observation
-        # if hashable:
-        #     agent = Mcts(
-        #         C=2,
-        #         n_sim=50,
-        #         root_data=observation,
-        #         env=copy(real_env.unwrapped),
-        #         action_selection_fn=ucb1,
-        #         max_depth=100,
-        #         gamma=0.9,
-        #         rollout_selection_fn=rollout_fn,
-        #         state_variable="_state",
-        #     )
-        # else:
-        #     agent = MctsHash(
-        #         C=2,
-        #         n_sim=100,
-        #         root_data=observation,
-        #         env=copy(real_env.unwrapped),
-        #         action_selection_fn=ucb1,
-        #         max_depth=100,
-        #         gamma=0.9,
-        #         rollout_selection_fn=rollout_fn,
-        #         state_variable="_state",
-        #     )
-        agent = MctsHashStateContinuous(
-                C=2,
-                n_sim=50,
-                root_data=observation,
-                env=sim_env,
-                action_selection_fn=ucb1,
-                max_depth=100,
-                gamma=0.9,
-                rollout_selection_fn=rollout_fn,
-                state_variable="_state",
-            )
+        # agent = AgentFactory.get_agent(
+        #     agent_type="vanilla",
+        #     root_data=observation,
+        #     env=sim_env.unwrapped,
+        #     n_sim=50,
+        #     C=2,
+        #     action_selection_fn=ucb1,
+        #     gamma=0.9,
+        #     rollout_selection_fn=rollout_fn,
+        #     state_variable="_state",
+        #     max_depth=100,
+        # )
+        agent = MctsActionProgressiveWideningHash(
+            root_data=observation,
+            env=sim_env.unwrapped,
+            n_sim=50,
+            C=2,
+            action_selection_fn=ucb1,
+            gamma=0.9,
+            rollout_selection_fn=rollout_fn,
+            state_variable="_state",
+            max_depth=100,
+            alpha=1,
+            k=0.3
+        )
         action = agent.fit()
-        agent.visualize()
         observation, reward, done, extra = real_env.step(action)
         state_log.append(observation)
         extra_log.append(list(extra.values()))
-        print(f"S: {last_state} A: {action}, S': {observation}, R: {reward}")
-        print()
+        # print(f"S: {last_state} A: {action}, S': {observation}, R: {reward}")
+        # print()
+        # agent.visualize()
         real_env.render()
-        break
-
     extra_log[-1] = extra_log[-1][:-1]
-    # generate_plots(real_env, state_log, extra_log)
+    generate_plots(real_env, state_log, extra_log)
 
     # TODO make comparison graphs
 

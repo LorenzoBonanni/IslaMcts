@@ -3,11 +3,9 @@ import random
 import numpy as np
 from gym import Env
 
-from agents.mcts_hash import MctsHash, StateNodeHash, ActionNodeHash
-from mcts import StateNode
+from src.agents.mcts_hash import MctsHash, StateNodeHash, ActionNodeHash
 
 
-# TODO IMPLEMENT
 class MctsStateProgressiveWideningHash(MctsHash):
     def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float,
                  rollout_selection_fn, state_variable, alpha: float, k: float):
@@ -21,8 +19,17 @@ class MctsStateProgressiveWideningHash(MctsHash):
         :param gamma: discount factor
         :param state_variable: the name of the variable containing state information inside the environment
         """
-        super().__init__(C, n_sim, root_data, env, action_selection_fn, max_depth, gamma, rollout_selection_fn,
-                         state_variable)
+        super().__init__(
+            root_data=root_data,
+            env=env,
+            n_sim=n_sim,
+            C=C,
+            action_selection_fn=action_selection_fn,
+            gamma=gamma,
+            rollout_selection_fn=rollout_selection_fn,
+            state_variable=state_variable,
+            max_depth=max_depth
+        )
 
         self.root = StateNodeProgressiveWideningHash(root_data, env, C, self.action_selection_fn, gamma,
                                                      rollout_selection_fn, state_variable, alpha, k)
@@ -99,7 +106,7 @@ class ActionNodeProgressiveWideningHash(ActionNodeHash):
         """
         observation, instant_reward, terminal, _ = self.env.step(self.data)
         obs_bytes = observation.tobytes()
-        if len(self.children) < self.k * (self.na ** self.alpha):
+        if len(self.children) < self.k * ((self.na+1) ** self.alpha):
             # EXPAND
             # if the node is terminal back-propagate instant reward
             if terminal:
@@ -107,8 +114,10 @@ class ActionNodeProgressiveWideningHash(ActionNodeHash):
                 # add terminal states for visualization
                 if state is None:
                     # add child node
-                    state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma,
-                                      self.rollout_selection_fn, self.state_variable)
+                    state = StateNodeProgressiveWideningHash(observation, self.env, self.C, self.action_selection_fn,
+                                                             self.gamma,
+                                                             self.rollout_selection_fn, self.state_variable, self.alpha,
+                                                             self.k)
                     state.terminal = True
                     self.children[obs_bytes] = state
                 self.total += instant_reward
@@ -121,7 +130,8 @@ class ActionNodeProgressiveWideningHash(ActionNodeHash):
                 if state is None:
                     # add child node
                     state = StateNodeProgressiveWideningHash(observation, self.env, self.C, self.action_selection_fn,
-                                                             self.gamma, self.rollout_selection_fn, self.state_variable)
+                                                             self.gamma, self.rollout_selection_fn, self.state_variable,
+                                                             self.alpha, self.k)
                     self.children[obs_bytes] = state
                     # ROLLOUT
                     delayed_reward = self.gamma * state.rollout(max_depth)
@@ -144,7 +154,7 @@ class ActionNodeProgressiveWideningHash(ActionNodeHash):
             # SAMPLE FROM VISITED STATES
             key = random.choices(
                 population=self.children.keys(),
-                weights=self.na / np.array(self.children.values())
+                weights=self.na / np.array(list(self.children.values()))
             )[0]
             state = self.children[key]
             self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = state.data

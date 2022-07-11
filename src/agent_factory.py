@@ -17,16 +17,16 @@ class AgentFactory:
 
         if agent_type == "vanilla":
             if hashable:
-                return Mcts(*kwargs)
+                return Mcts(**kwargs)
             else:
-                return MctsHash(*kwargs)
+                return MctsHash(**kwargs)
         elif agent_type == "continuous":
             if hashable:
-                return MctsContinuous(*kwargs)
+                return MctsContinuous(**kwargs)
             else:
-                return MctsContinuousHash(*kwargs)
+                return MctsContinuousHash(**kwargs)
         elif agent_type == "state_pw":
             if hashable:
-                return MctsStateProgressiveWidening(*kwargs)
+                return MctsStateProgressiveWidening(**kwargs)
             else:
-                return MctsStateProgressiveWideningHash(*kwargs)
+                return MctsStateProgressiveWideningHash(**kwargs)

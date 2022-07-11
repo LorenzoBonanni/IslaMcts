@@ -9,8 +9,7 @@ Welcome to my mcts's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
-   modules
+      modules
 
 Indices and tables
 ==================

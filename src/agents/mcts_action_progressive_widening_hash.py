@@ -1,14 +1,15 @@
+import math
 from collections import OrderedDict
 
 import numpy as np
 from gym import Env
 
-from src.agents.mcts_hash import MctsHash, ActionNodeHash, StateNodeHash
+from src.agents.mcts_hash import MctsHash, StateNodeHash, ActionNodeHash
 
 
-class MctsContinuousHash(MctsHash):
+class MctsActionProgressiveWideningHash(MctsHash):
     def __init__(self, C: float, n_sim: int, root_data, env: Env, action_selection_fn, max_depth: int, gamma: float,
-                 rollout_selection_fn, state_variable):
+                 rollout_selection_fn, state_variable, alpha: float, k: float):
         """
         :param C: exploration-exploitation factor
         :param n_sim: number of simulations from root node
@@ -31,8 +32,10 @@ class MctsContinuousHash(MctsHash):
             max_depth=max_depth
         )
 
-        self.root = StateNodeContinuousHash(root_data, env, C, self.action_selection_fn, gamma,
-                                            rollout_selection_fn, state_variable)
+        self.root = StateNodeProgressiveWideningHash(root_data, env, C, self.action_selection_fn, gamma,
+                                                     rollout_selection_fn, state_variable, alpha, k)
+        self.alpha = alpha
+        self.k = k
 
     def fit(self) -> int:
         """
@@ -59,10 +62,9 @@ class MctsContinuousHash(MctsHash):
         a = list(self.root.actions.keys())[index]
         return np.frombuffer(a, dtype=float)
 
-
-class StateNodeContinuousHash(StateNodeHash):
+class StateNodeProgressiveWideningHash(StateNodeHash):
     def __init__(self, data, env: Env, C: float, action_selection_fn, gamma: float, rollout_selection_fn,
-                 state_variable):
+                 state_variable, alpha: float, k: float):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -71,6 +73,8 @@ class StateNodeContinuousHash(StateNodeHash):
         :param gamma: discount factor
         """
         super().__init__(data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable)
+        self.alpha = alpha
+        self.k = k
         self.visit_actions = {}
 
     def build_tree(self, max_depth):
@@ -81,20 +85,33 @@ class StateNodeContinuousHash(StateNodeHash):
         """
         # SELECTION
         # to avoid biases if there are unvisited actions we sample randomly from them
-        action = self.env.action_space.sample()
-        bytes_action = action.tobytes()
-        child = self.actions.get(bytes_action, None)
-        # if child is None create a new ActionNode
-        if child is None:
-            child = ActionNodeContinuousHash(action, self.env, self.C, self.action_selection_fn, self.gamma,
-                                             self.rollout_selection_fn, self.state_variable)
-            self.actions[bytes_action] = child
-            self.visit_actions[bytes_action] = 0
+        if len(self.actions) < math.ceil(self.k * ((self.ns + 1) ** self.alpha)):
+            action = self.env.action_space.sample()
+            action_bytes = action.tobytes()
+            child = ActionNodeProgressiveWideningHash(action, self.env, self.C, self.action_selection_fn, self.gamma,
+                                                      self.rollout_selection_fn, self.state_variable, self.alpha,
+                                                      self.k)
+            self.visit_actions[action_bytes] = 0
+            self.actions[action_bytes] = child
+        else:
+            action_index = self.action_selection_fn(self.total, self.C, list(self.visit_actions.values()), self.ns)
+            action_bytes = list(self.visit_actions.keys())[action_index]
+            child = self.actions[action_bytes]
+        # if 0 in self.visit_actions.values():
+        #     # random action
+        #     index = np.random.choice(np.flatnonzero(self.visit_actions == 0))
+        #     a = list(self.visit_actions.keys())[index]
+        #     action = np.frombuffer(a, dtype=float)
+        # else:
+        #     action = self.action_selection_fn(self.total, self.C, self.visit_actions, self.ns)
 
+        # in order to get instant_reward set the state into the environment to the current state
+        self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = self.data
+        # ROLLOUT + BACKPROPAGATION
         reward = child.build_tree(max_depth)
         self.ns += 1
-        self.visit_actions[bytes_action] += 1
-        self.total += self.gamma * reward
+        self.visit_actions[action_bytes] += 1
+        self.total += reward
         return reward
 
     def rollout(self, max_depth) -> float:
@@ -116,8 +133,9 @@ class StateNodeContinuousHash(StateNodeHash):
         return reward
 
 
-class ActionNodeContinuousHash(ActionNodeHash):
-    def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable):
+class ActionNodeProgressiveWideningHash(ActionNodeHash):
+    def __init__(self, data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable, alpha: float,
+                 k: float):
         """
         :param C: exploration-exploitation factor
         :param data: data of the node
@@ -126,6 +144,8 @@ class ActionNodeContinuousHash(ActionNodeHash):
         :param gamma: discount factor
         """
         super().__init__(data, env, C, action_selection_fn, gamma, rollout_selection_fn, state_variable)
+        self.alpha = alpha
+        self.k = k
 
     def build_tree(self, max_depth) -> float:
         """
@@ -142,12 +162,16 @@ class ActionNodeContinuousHash(ActionNodeHash):
             # add terminal states for visualization
             if state is None:
                 # add child node
-                state = StateNodeContinuousHash(observation, self.env, self.C, self.action_selection_fn, self.gamma,
-                                                self.rollout_selection_fn, self.state_variable)
+                state = StateNodeProgressiveWideningHash(observation, self.env, self.C, self.action_selection_fn,
+                                                         self.gamma,
+                                                         self.rollout_selection_fn, self.state_variable, self.alpha,
+                                                         self.k)
                 state.terminal = True
                 self.children[obs_bytes] = state
+            # ORIGINAL
             self.total += instant_reward
             self.na += 1
+            # MODIFIED
             state.ns += 1
             return instant_reward
         else:
@@ -155,8 +179,10 @@ class ActionNodeContinuousHash(ActionNodeHash):
             state = self.children.get(obs_bytes, None)
             if state is None:
                 # add child node
-                state = StateNodeContinuousHash(observation, self.env, self.C, self.action_selection_fn, self.gamma,
-                                                self.rollout_selection_fn, self.state_variable)
+                state = StateNodeProgressiveWideningHash(observation, self.env, self.C, self.action_selection_fn,
+                                                         self.gamma,
+                                                         self.rollout_selection_fn, self.state_variable, self.alpha,
+                                                         self.k)
                 self.children[obs_bytes] = state
                 # ROLLOUT
                 delayed_reward = self.gamma * state.rollout(max_depth)

@@ -1,7 +1,7 @@
 import numpy as np
 from gym import Env
 
-from mcts import ActionNode, StateNode, Mcts
+from src.agents.mcts import Mcts, ActionNode, StateNode
 
 
 class MctsHash(Mcts):
@@ -17,8 +17,17 @@ class MctsHash(Mcts):
         :param gamma: discount factor
         :param state_variable: the name of the variable containing state information inside the environment
         """
-        super().__init__(C, n_sim, root_data, env, action_selection_fn, max_depth, gamma, rollout_selection_fn,
-                         state_variable)
+        super().__init__(
+            root_data=root_data,
+            env=env,
+            n_sim=n_sim,
+            C=C,
+            action_selection_fn=action_selection_fn,
+            gamma=gamma,
+            rollout_selection_fn=rollout_selection_fn,
+            state_variable=state_variable,
+            max_depth=max_depth
+        )
 
         self.root = StateNodeHash(root_data, env, C, self.action_selection_fn, gamma,
                                   rollout_selection_fn, state_variable)
@@ -100,7 +109,7 @@ class ActionNodeHash(ActionNode):
             state = self.children.get(observation.tobytes(), None)
             if state is None:
                 # add child node
-                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma,
+                state = StateNodeHash(observation, self.env, self.C, self.action_selection_fn, self.gamma,
                                   self.rollout_selection_fn, self.state_variable)
                 self.children[observation.tobytes()] = state
                 # ROLLOUT
