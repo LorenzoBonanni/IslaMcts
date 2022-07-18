@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 
-from action_selection_functions import ucb1, discrete_default_policy
+from action_selection_functions import ucb1, discrete_default_policy, grid_policy
 from src.agents.mcts import Mcts
 
 action_string = {
@@ -57,8 +57,8 @@ distances = {
     for r in range(4)
 }
 
-# rollout_fn = grid_policy(distances, n_actions)
-rollout_fn = discrete_default_policy(n_actions)
+rollout_fn = grid_policy(distances, n_actions)
+# rollout_fn = discrete_default_policy(n_actions)
 
 real_env = gym.make("FrozenLake-v1", is_slippery=False)
 sim_env = gym.make("FrozenLake-v1", is_slippery=False)

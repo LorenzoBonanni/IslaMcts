@@ -62,7 +62,9 @@ class StateNodeProgressiveWideningHash(StateNodeHash):
         if 0 in self.visit_actions:
             # random action
             action = np.random.choice(np.flatnonzero(self.visit_actions == 0))
+            # TODO add child every time
         else:
+            # TODO: child here will never be NONE
             action = self.action_selection_fn(self.total, self.C, self.visit_actions, self.ns)
 
         child = self.actions.get(action, None)
@@ -106,55 +108,48 @@ class ActionNodeProgressiveWideningHash(ActionNodeHash):
         """
         observation, instant_reward, terminal, _ = self.env.step(self.data)
         obs_bytes = observation.tobytes()
-        if len(self.children) < self.k * ((self.na+1) ** self.alpha):
+        if len(self.children) == 0 or len(self.children) <= self.k * (self.na ** self.alpha):
             # EXPAND
             # if the node is terminal back-propagate instant reward
             if terminal:
-                state = self.children.get(obs_bytes, None)
                 # add terminal states for visualization
-                if state is None:
-                    # add child node
-                    state = StateNodeProgressiveWideningHash(observation, self.env, self.C, self.action_selection_fn,
-                                                             self.gamma,
-                                                             self.rollout_selection_fn, self.state_variable, self.alpha,
-                                                             self.k)
-                    state.terminal = True
-                    self.children[obs_bytes] = state
+                # add child node
+                state = StateNodeProgressiveWideningHash(observation, self.env, self.C,
+                                                         self.action_selection_fn,
+                                                         self.gamma,
+                                                         self.rollout_selection_fn, self.state_variable,
+                                                         self.alpha,
+                                                         self.k)
+                state.terminal = True
+                self.children[obs_bytes] = state
+
                 self.total += instant_reward
                 self.na += 1
                 state.ns += 1
                 return instant_reward
             else:
-                # check if the node has been already visited
-                state = self.children.get(obs_bytes, None)
-                if state is None:
-                    # add child node
-                    state = StateNodeProgressiveWideningHash(observation, self.env, self.C, self.action_selection_fn,
-                                                             self.gamma, self.rollout_selection_fn, self.state_variable,
-                                                             self.alpha, self.k)
-                    self.children[obs_bytes] = state
-                    # ROLLOUT
-                    delayed_reward = self.gamma * state.rollout(max_depth)
+                # add child node
+                state = StateNodeProgressiveWideningHash(observation, self.env, self.C,
+                                                         self.action_selection_fn,
+                                                         self.gamma, self.rollout_selection_fn,
+                                                         self.state_variable,
+                                                         self.alpha,
+                                                         self.k)
+                self.children[obs_bytes] = state
+                # ROLLOUT
+                delayed_reward = self.gamma * state.rollout(max_depth)
 
-                    # BACK-PROPAGATION
-                    self.na += 1
-                    state.ns += 1
-                    self.total += (instant_reward + delayed_reward)
-                    state.total += (instant_reward + delayed_reward)
-                    return instant_reward + delayed_reward
-                else:
-                    # go deeper the tree
-                    delayed_reward = self.gamma * state.build_tree(max_depth)
-
-                    # # BACK-PROPAGATION
-                    self.total += (instant_reward + delayed_reward)
-                    self.na += 1
-                    return instant_reward + delayed_reward
+                # BACK-PROPAGATION
+                self.na += 1
+                state.ns += 1
+                self.total += (instant_reward + delayed_reward)
+                state.total += (instant_reward + delayed_reward)
+                return instant_reward + delayed_reward
         else:
             # SAMPLE FROM VISITED STATES
             key = random.choices(
-                population=self.children.keys(),
-                weights=self.na / np.array(list(self.children.values()))
+                population=list(self.children.keys()),
+                weights=self.na / np.array([c.ns for c in list(self.children.values())])
             )[0]
             state = self.children[key]
             self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = state.data

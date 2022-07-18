@@ -62,7 +62,7 @@ class Mcts:
         :param extension: extension to the file name
         :return:
         """
-        np.set_printoptions(precision=3)
+        np.set_printoptions(precision=2)
         filename = f'mcts_{extension}'
         g = graphviz.Digraph('g', filename=f'{filename}.gv', directory='output')
         n = 0
@@ -95,7 +95,7 @@ class StateNode:
         self.ns = 0
         # number of visits for each child action
         # TODO make num of actions a parameter
-        self.visit_actions = np.zeros(11)
+        self.visit_actions = np.zeros(4)
         # dictionary containing mapping between action number and corresponding action node
         self.actions = {}
         self.C = C

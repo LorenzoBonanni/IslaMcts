@@ -1,10 +1,12 @@
 import gym
 import numpy as np
+from tqdm import tqdm
 
 from action_selection_functions import ucb1, discrete_default_policy
 from src.agent_factory import AgentFactory
 from src.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
 from src.agents.mcts_continuous_hash import MctsContinuousHash
+from src.agents.mcts_double_progressive_widening_hash import MctsDoubleProgressiveWideningHash
 from src.agents.mcts_hash import MctsHash
 from src.agents.mcts_state_progressive_widening_hash import MctsStateProgressiveWideningHash
 
@@ -44,54 +46,49 @@ def generate_plots(godd, state_log, extra_log):
 
 
 def main():
+    # DISCRETE
     # real_env = gym.make('gym_goddard:GoddardDiscrete-v0')
-    real_env = gym.make('gym_goddard:Goddard-v0')
     # sim_env = gym.make('gym_goddard:GoddardDiscrete-v0')
+
+    # CONTINUOUS
+    real_env = gym.make('gym_goddard:Goddard-v0')
     sim_env = gym.make('gym_goddard:Goddard-v0')
+
     observation = real_env.reset()
     sim_env.reset()
-    real_env.render()
+    # real_env.render()
     rollout_fn = discrete_default_policy(11)
 
     state_log = [observation]
     extra_log = []
     agent = None
 
-    for _ in time:
+    for _ in tqdm(time):
         last_state = observation
-        # agent = AgentFactory.get_agent(
-        #     agent_type="vanilla",
-        #     root_data=observation,
-        #     env=sim_env.unwrapped,
-        #     n_sim=50,
-        #     C=2,
-        #     action_selection_fn=ucb1,
-        #     gamma=0.9,
-        #     rollout_selection_fn=rollout_fn,
-        #     state_variable="_state",
-        #     max_depth=100,
-        # )
         agent = MctsActionProgressiveWideningHash(
             root_data=observation,
             env=sim_env.unwrapped,
-            n_sim=50,
-            C=2,
+            n_sim=1000,
+            C=0,
             action_selection_fn=ucb1,
-            gamma=0.9,
+            gamma=1,
             rollout_selection_fn=rollout_fn,
             state_variable="_state",
-            max_depth=100,
-            alpha=1,
-            k=0.3
+            max_depth=500,
+            alpha=0.3,
+            k=5,
+            # alpha=0.5,
+            # k=3
         )
         action = agent.fit()
         observation, reward, done, extra = real_env.step(action)
         state_log.append(observation)
         extra_log.append(list(extra.values()))
-        # print(f"S: {last_state} A: {action}, S': {observation}, R: {reward}")
         # print()
-        # agent.visualize()
-        real_env.render()
+        # print(f"S: {last_state} A: {action}, S': {observation}, R: {reward}")
+        agent.visualize()
+        break
+        # real_env.render()
     extra_log[-1] = extra_log[-1][:-1]
     generate_plots(real_env, state_log, extra_log)
 

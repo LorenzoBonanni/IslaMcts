@@ -62,24 +62,16 @@ class StateNodeProgressiveWidening(StateNode):
         if 0 in self.visit_actions:
             # random action
             action = np.random.choice(np.flatnonzero(self.visit_actions == 0))
+            child = ActionNodeProgressiveWidening(action, self.env, self.C, self.action_selection_fn, self.gamma,
+                                                  self.rollout_selection_fn, self.state_variable)
+            self.actions[action] = child
         else:
             action = self.action_selection_fn(self.total, self.C, self.visit_actions, self.ns)
-
-        child = self.actions.get(action, None)
-        # if child is None create a new ActionNode
-        if child is None:
-            child = ActionNodeProgressiveWidening(action, self.env, self.C, self.action_selection_fn, self.gamma,
-                                                  self.rollout_selection_fn, self.state_variable, self.alpha, self.k)
-            self.visit_actions[action] = 0
-            self.actions[action] = child
-
-        # in order to get instant_reward set the state into the environment to the current state
-        self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = self.data
-        # ROLLOUT + BACKPROPAGATION
+            child = self.actions.get(action)
         reward = child.build_tree(max_depth)
         self.ns += 1
         self.visit_actions[action] += 1
-        self.total += reward
+        self.total += self.gamma * reward
         return reward
 
 
@@ -104,7 +96,7 @@ class ActionNodeProgressiveWidening(ActionNode):
         :return:
         """
         observation, instant_reward, terminal, _ = self.env.step(self.data)
-        if len(self.children) < self.k * (self.na ** self.alpha):
+        if len(self.children) == 0 or len(self.children) < self.k * (self.na ** self.alpha):
             # EXPAND
             # if the node is terminal back-propagate instant reward
             if terminal:
@@ -153,9 +145,11 @@ class ActionNodeProgressiveWidening(ActionNode):
             # SAMPLE FROM VISITED STATES
             key = random.choices(
                 population=self.children.keys(),
-                weights=self.na / np.array(self.children.values())
+                weights=self.na / np.array([c.ns for c in self.children.values()])
             )[0]
             state = self.children[key]
+
+            # because we choose a state already visited we need to force the state to be the current state
             self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = state.data
             # go deeper the tree
             delayed_reward = self.gamma * state.build_tree(max_depth)
