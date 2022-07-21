@@ -1,5 +1,6 @@
 import random
 
+import gym
 import numpy as np
 
 from src.agents.abstract_mcts import AbstractStateNode
@@ -14,7 +15,7 @@ def ucb1(node: AbstractStateNode):
     node_values = []
     for c in node.actions.values():
         visit_child.append(c.na)
-        node_values.append(c.total/c.na)
+        node_values.append(c.total / c.na)
 
     ucb_score = np.array(node_values) + node.param.C * np.sqrt(np.log(n_visits) / np.array(visit_child))
 
@@ -31,7 +32,7 @@ def discrete_default_policy(n_actions: int):
     """
     n_actions = n_actions
 
-    def policy(**kwargs):
+    def policy(*args, **kwargs):
         # choose an action uniformly random
         indices = list(range(n_actions))
         probs = [1 / len(indices)] * len(indices)
@@ -39,6 +40,10 @@ def discrete_default_policy(n_actions: int):
         return sampled_action
 
     return policy
+
+
+def continuous_default_policy(env, *args, **kwargs):
+    return env.action_space.sample()
 
 
 def grid_policy(prior_knowledge, n_actions):
@@ -52,12 +57,12 @@ def grid_policy(prior_knowledge, n_actions):
     knowledge = prior_knowledge
     n_actions = n_actions
 
-    def policy(state, **kwargs):
+    def policy(env: gym.Env, node: AbstractStateNode, *args, **kwargs):
         """
         computes the best action based on the heuristic
-        :param state: the state in which the agent is in
         :return:
         """
+        state = env.__dict__[node.param.state_variable]
         indices = list(range(n_actions))
         ks = np.array(knowledge[state])
         # probs = [1 / len(indices)] * len(indices)

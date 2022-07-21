@@ -44,25 +44,6 @@ class StateNode(AbstractStateNode):
         super().__init__(data, param)
         self.visit_actions = np.zeros(param.n_actions)
 
-    def rollout(self, max_depth: int) -> float:
-        """
-        Play out until max depth or a terminal state is reached
-
-        :param max_depth: max depth of simulation
-        :return: reward obtained from the state
-        """
-        curr_env = self.param.env
-        done = False
-        reward = 0
-        depth = 0
-        while not done and depth < max_depth:
-            sampled_action = self.param.rollout_selection_fn(state=curr_env.__dict__[self.param.state_variable])
-
-            # execute action
-            obs, reward, done, _ = curr_env.step(sampled_action)
-            depth += 1
-        return reward
-
     def build_tree(self, max_depth: int):
         """
         go down the tree until a leaf is reached and do rollout from that

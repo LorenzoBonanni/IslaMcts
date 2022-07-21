@@ -24,7 +24,7 @@ class AbstractMcts(ABC):
 
         :return: the best action
         """
-        pass
+        raise NotImplementedError
 
     def visualize(self, extension: str = '0') -> None:
         """
@@ -61,17 +61,26 @@ class AbstractStateNode(ABC):
 
     @abstractmethod
     def build_tree(self, max_depth: int):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def rollout(self, max_depth: int) -> float:
         """
-        Random play out until max depth or a terminal state is reached
+        Play out until max depth or a terminal state is reached
 
         :param max_depth: max depth of simulation
         :return: reward obtained from the state
         """
-        pass
+        curr_env = self.param.env
+        done = False
+        reward = 0
+        depth = 0
+        while not done and depth < max_depth:
+            sampled_action = self.param.rollout_selection_fn(env=curr_env, node=self)
+
+            # execute action
+            obs, reward, done, _ = curr_env.step(sampled_action)
+            depth += 1
+        return reward
 
     def visualize(self, n: int, father: str, g: Digraph):
         """
@@ -117,7 +126,7 @@ class AbstractActionNode(ABC):
         :param max_depth:  max depth of simulation
         :return:
         """
-        pass
+        raise NotImplementedError
 
     def visualize(self, n, father, g):
         """
