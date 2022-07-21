@@ -2,10 +2,10 @@ import random
 
 import numpy as np
 
-from src.agents.mcts import StateNode
+from src.agents.abstract_mcts import AbstractStateNode
 
 
-def ucb1(node: StateNode):
+def ucb1(node: AbstractStateNode):
     """
     computes the best action based on the ucb1 value
     """
@@ -16,7 +16,7 @@ def ucb1(node: StateNode):
         visit_child.append(c.na)
         node_values.append(c.total/c.na)
 
-    ucb_score = np.array(node_values) + node.C * np.sqrt(np.log(n_visits) / np.array(visit_child))
+    ucb_score = np.array(node_values) + node.param.C * np.sqrt(np.log(n_visits) / np.array(visit_child))
 
     # to avoid biases we randomly choose between the actions which maximize the ucb1 score
     a = np.random.choice(np.flatnonzero(ucb_score == ucb_score.max()))

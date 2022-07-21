@@ -1,37 +1,19 @@
 from collections import OrderedDict
-from typing import Callable, Any, Union
-from graphviz import Digraph
+from typing import Any
 
-import subprocess
-import graphviz
-import gym
 import numpy as np
 
+from src.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
+from src.agents.mcts_parameters import MctsParameters
 
-class Mcts:
-    def __init__(self, root_data: Any, env: gym.Env, n_sim: int, C: Union[float, int], action_selection_fn: Callable,
-                 gamma: float, rollout_selection_fn: Callable, state_variable: str, max_depth: int):
-        """
 
-        :param C: exploration-exploitation factor
-        :param n_sim: number of simulations from root node
-        :param root_data: data of the root node
-        :param env: simulation environment
-        :param action_selection_fn: the function to select actions
-        :param max_depth: max depth during rollout
-        :param gamma: discount factor
-        :param state_variable: the name of the variable containing state information inside the environment
-        """
-        self.q_values = None
-        self.C = C
-        self.n_sim = n_sim
-        self.max_depth = max_depth
-        self.env = env
-        self.action_selection_fn = action_selection_fn
-        self.rollout_selection_fn = rollout_selection_fn
-        self.root_data = root_data
-        self.root = StateNode(root_data, env, C, self.action_selection_fn, gamma, rollout_selection_fn, state_variable)
-        self.state_variable = state_variable
+class Mcts(AbstractMcts):
+    def __init__(self, param: MctsParameters):
+        super().__init__(param)
+        self.root = StateNode(
+            data=param.root_data,
+            param=param
+        )
 
     def fit(self) -> int:
         """
@@ -39,9 +21,10 @@ class Mcts:
 
         :return: the best action
         """
-        for s in range(self.n_sim):
-            self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = self.root_data
-            self.root.build_tree(self.max_depth)
+        for s in range(self.param.n_sim):
+            self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[
+                self.param.state_variable] = self.param.root_data
+            self.root.build_tree(self.param.max_depth)
 
         # order actions dictionary so that action indices correspond to the action number
         self.root.actions = OrderedDict(sorted(self.root.actions.items()))
@@ -55,68 +38,25 @@ class Mcts:
         # to avoid biases choose random between the actions with the highest q_value
         return np.random.choice(np.flatnonzero(q_val == q_val.max()))
 
-    def visualize(self, extension: str = '0') -> None:
-        """
-        creates a visualization of the tree
 
-        :param extension: extension to the file name
-        :return:
-        """
-        np.set_printoptions(precision=2)
-        filename = f'mcts_{extension}'
-        g = graphviz.Digraph('g', filename=f'{filename}.gv', directory='output')
-        n = 0
-        self.root.visualize(n, None, g)
-
-        # save gv file
-        g.save()
-        # render gv file to an svg
-        with open(f'output/{filename}.svg', 'w') as f:
-            subprocess.Popen(['dot', '-Tsvg', f'output/{filename}.gv'], stdout=f)
-
-
-class StateNode:
-    def __init__(self, data: Any, env: gym.Env, C: Union[float, int], action_selection_fn: Callable, gamma: float,
-                 rollout_selection_fn: Callable, state_variable: str):
-        """
-
-        :param C: exploration-exploitation factor
-        :param data: data of the node
-        :param env: simulation environment
-        :param action_selection_fn: the function to select actions
-        :param gamma: discount factor
-        """
-        self.gamma = gamma
-        self.data = data
-        self.env = env
-        # total reward
-        self.total = 0
-        # number of visits of the node
-        self.ns = 0
-        # number of visits for each child action
-        # TODO make num of actions a parameter
-        self.visit_actions = np.zeros(4)
-        # dictionary containing mapping between action number and corresponding action node
-        self.actions = {}
-        self.C = C
-        self.action_selection_fn = action_selection_fn
-        self.rollout_selection_fn = rollout_selection_fn
-        self.state_variable = state_variable
-        self.terminal = False
+class StateNode(AbstractStateNode):
+    def __init__(self, data: Any, param: MctsParameters):
+        super().__init__(data, param)
+        self.visit_actions = np.zeros(param.n_actions)
 
     def rollout(self, max_depth: int) -> float:
         """
-        Random play out until max depth or a terminal state is reached
+        Play out until max depth or a terminal state is reached
 
         :param max_depth: max depth of simulation
         :return: reward obtained from the state
         """
-        curr_env = self.env
+        curr_env = self.param.env
         done = False
         reward = 0
         depth = 0
         while not done and depth < max_depth:
-            sampled_action = self.rollout_selection_fn(state=curr_env.__dict__[self.state_variable])
+            sampled_action = self.param.rollout_selection_fn(state=curr_env.__dict__[self.param.state_variable])
 
             # execute action
             obs, reward, done, _ = curr_env.step(sampled_action)
@@ -135,67 +75,19 @@ class StateNode:
         if 0 in self.visit_actions:
             # random action
             action = np.random.choice(np.flatnonzero(self.visit_actions == 0))
-            child = ActionNode(action, self.env, self.C, self.action_selection_fn, self.gamma,
-                               self.rollout_selection_fn, self.state_variable)
+            child = ActionNode(data=action, param=self.param)
             self.actions[action] = child
         else:
-            action = self.action_selection_fn(self.total, self.C, self.visit_actions, self.ns)
+            action = self.param.action_selection_fn(self)
             child = self.actions.get(action)
         reward = child.build_tree(max_depth)
         self.ns += 1
         self.visit_actions[action] += 1
-        self.total += self.gamma * reward
+        self.total += self.param.gamma * reward
         return reward
 
-    def visualize(self, n: int, father: Union[str, None], g: Digraph):
-        """
-        add the current node to the graph and recursively adds child nodes to the graph
 
-        :param n: the last node number
-        :param father: the father node name
-        :param g: the graph
-        :return: updated n
-        """
-        # add the node its self
-        g.attr('node', shape='circle')
-        if self.terminal:
-            g.attr('node', fillcolor='green', style='filled')
-        name = f"node{n}"
-        g.node(name, f"{self.data}\nn={self.ns}\nV={(self.total / self.ns):.3f}")
-        g.attr('node', fillcolor='white', style='filled')
-        # for root node father is None
-        if father is not None:
-            g.edge(father, name)
-        n += 1
-        # add its child nodes
-        for action_node in self.actions.values():
-            father = name
-            n = action_node.visualize(n, father, g)
-        # to avoid losing the updated n value every time the function end returns the most updated n value
-        return n
-
-
-class ActionNode:
-    def __init__(self, data: Any, env: gym.Env, C: Union[float, int], action_selection_fn: Callable, gamma: float,
-                 rollout_selection_fn: Callable, state_variable: str):
-        """
-
-        :param C: exploration-exploitation factor
-        :param data: data of the node
-        :param env: simulation environment
-        :param action_selection_fn: the function to select actions
-        :param gamma: discount factor
-        """
-        self.gamma = gamma
-        self.data = data
-        self.env = env
-        self.total = 0
-        self.na = 0
-        self.C = C
-        self.children = {}
-        self.action_selection_fn = action_selection_fn
-        self.rollout_selection_fn = rollout_selection_fn
-        self.state_variable = state_variable
+class ActionNode(AbstractActionNode):
 
     def build_tree(self, max_depth: int) -> float:
         """
@@ -204,7 +96,7 @@ class ActionNode:
         :param max_depth:  max depth of simulation
         :return:
         """
-        observation, instant_reward, terminal, _ = self.env.step(self.data)
+        observation, instant_reward, terminal, _ = self.param.env.step(self.data)
 
         # if the node is terminal back-propagate instant reward
         if terminal:
@@ -212,8 +104,7 @@ class ActionNode:
             # add terminal states for visualization
             if state is None:
                 # add child node
-                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma,
-                                  self.rollout_selection_fn, self.state_variable)
+                state = StateNode(data=observation, param=self.param)
                 state.terminal = True
                 self.children[observation] = state
             self.total += instant_reward
@@ -225,11 +116,10 @@ class ActionNode:
             state = self.children.get(observation, None)
             if state is None:
                 # add child node
-                state = StateNode(observation, self.env, self.C, self.action_selection_fn, self.gamma,
-                                  self.rollout_selection_fn, self.state_variable)
+                state = StateNode(data=observation, param=self.param)
                 self.children[observation] = state
                 # ROLLOUT
-                delayed_reward = self.gamma * state.rollout(max_depth)
+                delayed_reward = self.param.gamma * state.rollout(max_depth)
 
                 # BACK-PROPAGATION
                 self.na += 1
@@ -239,32 +129,9 @@ class ActionNode:
                 return instant_reward + delayed_reward
             else:
                 # go deeper the tree
-                delayed_reward = self.gamma * state.build_tree(max_depth)
+                delayed_reward = self.param.gamma * state.build_tree(max_depth)
 
                 # # BACK-PROPAGATION
                 self.total += (instant_reward + delayed_reward)
                 self.na += 1
                 return instant_reward + delayed_reward
-
-    def visualize(self, n, father, g):
-        """
-        add the current node to the graph and recursively adds child nodes to the graph
-
-        :param n: the last node number
-        :param father: the father node name
-        :param g: the graph
-        :return: updated n
-        """
-        # add the node its self
-        g.attr('node', shape='box')
-        name = f"node{n}"
-        g.node(name, f"{self.data}\nn={self.na}\nQ={(self.total / self.na):.3f}")
-        # connect to father node
-        g.edge(father, name)
-        n += 1
-        # add its child nodes
-        for state_node in self.children.values():
-            father = name
-            n = state_node.visualize(n, father, g)
-        # to avoid losing the updated n value every time the function end returns the most updated n value
-        return n
