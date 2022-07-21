@@ -1,32 +1,36 @@
 from collections.abc import Hashable
+from ctypes import Union
 
+from src.agents.abstract_mcts import AbstractMcts
+from src.agents.dpw_parameters import DpwParameters
 from src.agents.mcts import Mcts
-from src.agents.mcts_continuous import MctsContinuous
-from src.agents.mcts_continuous_hash import MctsContinuousHash
+from src.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
+from src.agents.mcts_double_progressive_widening_hash import MctsDoubleProgressiveWideningHash
 from src.agents.mcts_hash import MctsHash
-from src.agents.mcts_state_progressive_widening import MctsStateProgressiveWidening
+from src.agents.mcts_parameters import MctsParameters
 from src.agents.mcts_state_progressive_widening_hash import MctsStateProgressiveWideningHash
+from src.agents.pw_parameters import PwParameters
+from src.agents.random_agent import RandomAgent
 
 
-class AgentFactory:
-    @staticmethod
-    def get_agent(agent_type, **kwargs):
-        hashable = True
-        if not isinstance(kwargs["root_data"], Hashable):
-            hashable = False
+def get_agent(agent_type: str, params: MctsParameters | PwParameters | DpwParameters) -> AbstractMcts:
+    hashable = True
+    if not isinstance(params.root_data, Hashable):
+        hashable = False
 
-        if agent_type == "vanilla":
-            if hashable:
-                return Mcts(**kwargs)
-            else:
-                return MctsHash(**kwargs)
-        elif agent_type == "continuous":
-            if hashable:
-                return MctsContinuous(**kwargs)
-            else:
-                return MctsContinuousHash(**kwargs)
-        elif agent_type == "state_pw":
-            if hashable:
-                return MctsStateProgressiveWidening(**kwargs)
-            else:
-                return MctsStateProgressiveWideningHash(**kwargs)
+    if agent_type == "vanilla":
+        if hashable:
+            return Mcts(params)
+        else:
+            return MctsHash(params)
+    elif agent_type == "spw":
+        if not hashable:
+            return MctsStateProgressiveWideningHash(params)
+    elif agent_type == "apw":
+        if not hashable:
+            return MctsActionProgressiveWideningHash(params)
+    elif agent_type == "dpw":
+        if not hashable:
+            return MctsDoubleProgressiveWideningHash(params)
+    elif agent_type == "random":
+        return RandomAgent(params)

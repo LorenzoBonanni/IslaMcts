@@ -10,7 +10,7 @@ class MctsParameters:
     # data of the root node
     root_data: Any
     # simulation environment
-    env: gym.Env
+    env: gym.Env | None
     # number of simulations from root node
     n_sim: int
     # exploration-exploitation factor

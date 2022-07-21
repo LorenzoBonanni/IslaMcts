@@ -1,6 +1,5 @@
 import subprocess
 from abc import ABC, abstractmethod
-from ctypes import Union
 from typing import Any
 
 import graphviz
@@ -11,6 +10,7 @@ from src.agents.mcts_parameters import MctsParameters
 
 
 class AbstractMcts(ABC):
+    __slots__ = "param", "root", "data", "q_values"
 
     def __init__(self, param: MctsParameters):
         self.param = param
@@ -35,18 +35,19 @@ class AbstractMcts(ABC):
         """
         np.set_printoptions(precision=2)
         filename = f'mcts_{extension}'
-        g = graphviz.Digraph('g', filename=f'{filename}.gv', directory='output')
+        g = graphviz.Digraph('g', filename=f'{filename}.gv', directory='output/tree')
         n = 0
         self.root.visualize(n, None, g)
 
         # save gv file
         g.save()
         # render gv file to an svg
-        with open(f'output/{filename}.svg', 'w') as f:
-            subprocess.Popen(['dot', '-Tsvg', f'output/{filename}.gv'], stdout=f)
+        with open(f'output/tree/{filename}.svg', 'w') as f:
+            subprocess.Popen(['dot', '-Tsvg', f'output/tree/{filename}.gv'], stdout=f)
 
 
 class AbstractStateNode(ABC):
+    __slots__ = "data", "param", "terminal", "total", "ns", "actions"
 
     def __init__(self, data: Any, param: MctsParameters):
         self.data = data
@@ -111,6 +112,8 @@ class AbstractStateNode(ABC):
 
 
 class AbstractActionNode(ABC):
+    __slots__ = "data", "total", "na", "children", "param"
+
     def __init__(self, data: Any, param: MctsParameters):
         self.data = data
         self.total = 0

@@ -2,43 +2,11 @@ import gym
 import numpy as np
 from tqdm import tqdm
 
-from action_selection_functions import ucb1, discrete_default_policy
+from action_selection_functions import ucb1, discrete_default_policy, continuous_default_policy
 from src.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
+from src.agents.pw_parameters import PwParameters
 
 time = np.arange(0, 0.4, 0.001)
-
-
-def generate_plots(godd, state_log, extra_log):
-    print("Maximum altitude reached: {}".format(godd.maximum_altitude()))
-    # print("End reward: {}".format(reward_end))
-    # print("Total reward: {}".format(reward))
-
-    import matplotlib.pyplot as plt
-
-    state_log = np.array(state_log)
-    extra_log = np.array(extra_log)
-
-    f, (ax1, ax2, ax3, ax4) = plt.subplots(4)
-
-    ax1.plot(time, state_log[:-1, 1])
-    ax1.grid(True)
-    ax1.set(xlabel='time [s]', ylabel='Altitude [m]')
-
-    ax2.plot(time, state_log[:-1, 0])
-    ax2.grid(True)
-    ax2.set(xlabel='time [s]', ylabel='Velocity [m/s]')
-
-    ax3.plot(time, state_log[:-1, 2])
-    ax3.grid(True)
-    ax3.set(xlabel='time [s]', ylabel='Rocket Mass [kg]')
-
-    ax4.plot(time, extra_log)
-    ax4.grid(True)
-    ax4.set(xlabel='time [s]', ylabel='Forces [N]')
-    ax4.legend(godd.extras_labels(), loc='upper right')
-    print(godd.extras_labels())
-    plt.savefig('mcts_continuous.svg')
-
 
 def main():
     # DISCRETE
@@ -50,37 +18,43 @@ def main():
     sim_env = gym.make('gym_goddard:Goddard-v0')
 
     observation = real_env.reset()
-    rollout_fn = discrete_default_policy(11)
 
     state_log = [observation]
     extra_log = []
+    params = PwParameters(
+        root_data=observation,
+        env=sim_env.unwrapped,
+        n_sim=1000,
+        C=0.0005,
+        action_selection_fn=ucb1,
+        gamma=1,
+        rollout_selection_fn=continuous_default_policy,
+        state_variable="_state",
+        max_depth=500,
+        alpha=0.3,
+        k=5,
+        # alpha=0.5,
+        # k=3,
+        n_actions=None
+    )
 
     for _ in tqdm(time):
-        last_state = observation
         sim_env.reset()
         # APW 22min
         agent = MctsActionProgressiveWideningHash(
-            root_data=observation,
-            env=sim_env.unwrapped,
-            n_sim=1000,
-            C=0.0005,
-            action_selection_fn=ucb1,
-            gamma=1,
-            rollout_selection_fn=rollout_fn,
-            state_variable="_state",
-            max_depth=500,
-            alpha=0.3,
-            k=5,
-            # alpha=0.5,
-            # k=3
+            param=params
         )
         action = agent.fit()
         observation, reward, done, extra = real_env.step(action)
         state_log.append(observation)
         extra_log.append(list(extra.values()))
+        params.root_data = observation
+
     extra_log[-1] = extra_log[-1][:-1]
     state_log = np.array(state_log)
+    np.savetxt(fname=f"output/state_log.csv", X=state_log, delimiter=",")
     extra_log = np.array(extra_log)
+    np.savetxt(fname=f"output/extra_log.csv", X=extra_log, delimiter=",")
 
 if __name__ == '__main__':
     main()

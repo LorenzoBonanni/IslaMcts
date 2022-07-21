@@ -1,5 +1,8 @@
 gym~=0.24.1
 numpy~=1.23.0
 graphviz~=0.20
-matplotlib
+matplotlib~=3.5.2
 gym[toy_text]
+joblib~=1.1.0
+tqdm~=4.64.0
+setuptools~=60.2.0
