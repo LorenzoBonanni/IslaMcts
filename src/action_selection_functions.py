@@ -2,18 +2,21 @@ import random
 
 import numpy as np
 
+from src.agents.mcts import StateNode
 
-def ucb1(total: float, C: float, visit_child: list, n_visits: int):
+
+def ucb1(node: StateNode):
     """
     computes the best action based on the ucb1 value
-    :param total: the total reward obtained by the node so far
-    :param C: exploration constant
-    :param visit_child: an array containing the number of visits of each action
-    :param n_visits: the number of visits of the node
-    :return:
     """
-    avg_reward = np.array(total) / len(visit_child)
-    ucb_score = avg_reward + C * np.sqrt(np.log(n_visits) / np.array(visit_child))
+    n_visits = node.ns
+    visit_child = []
+    node_values = []
+    for c in node.actions.values():
+        visit_child.append(c.na)
+        node_values.append(c.total/c.na)
+
+    ucb_score = np.array(node_values) + node.C * np.sqrt(np.log(n_visits) / np.array(visit_child))
 
     # to avoid biases we randomly choose between the actions which maximize the ucb1 score
     a = np.random.choice(np.flatnonzero(ucb_score == ucb_score.max()))
@@ -64,7 +67,7 @@ def grid_policy(prior_knowledge, n_actions):
         #
         # probs = knowledge_bias + probs
         # probs = probs / sum(probs)
-
+        #
         # sampled_action = random.choices(population=indices, weights=probs)[0]
 
         # to avoid biases if two or more actions have the same value we choose randomly between them

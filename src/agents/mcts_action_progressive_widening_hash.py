@@ -94,16 +94,9 @@ class StateNodeProgressiveWideningHash(StateNodeHash):
             self.visit_actions[action_bytes] = 0
             self.actions[action_bytes] = child
         else:
-            action_index = self.action_selection_fn(self.total, self.C, list(self.visit_actions.values()), self.ns)
+            action_index = self.action_selection_fn(self)
             action_bytes = list(self.visit_actions.keys())[action_index]
             child = self.actions[action_bytes]
-        # if 0 in self.visit_actions.values():
-        #     # random action
-        #     index = np.random.choice(np.flatnonzero(self.visit_actions == 0))
-        #     a = list(self.visit_actions.keys())[index]
-        #     action = np.frombuffer(a, dtype=float)
-        # else:
-        #     action = self.action_selection_fn(self.total, self.C, self.visit_actions, self.ns)
 
         # in order to get instant_reward set the state into the environment to the current state
         self.env.__dict__[self.state_variable] = self.env.unwrapped.__dict__[self.state_variable] = self.data

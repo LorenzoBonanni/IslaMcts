@@ -3,12 +3,7 @@ import numpy as np
 from tqdm import tqdm
 
 from action_selection_functions import ucb1, discrete_default_policy
-from src.agent_factory import AgentFactory
 from src.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
-from src.agents.mcts_continuous_hash import MctsContinuousHash
-from src.agents.mcts_double_progressive_widening_hash import MctsDoubleProgressiveWideningHash
-from src.agents.mcts_hash import MctsHash
-from src.agents.mcts_state_progressive_widening_hash import MctsStateProgressiveWideningHash
 
 time = np.arange(0, 0.4, 0.001)
 
@@ -55,21 +50,20 @@ def main():
     sim_env = gym.make('gym_goddard:Goddard-v0')
 
     observation = real_env.reset()
-    sim_env.reset()
-    # real_env.render()
     rollout_fn = discrete_default_policy(11)
 
     state_log = [observation]
     extra_log = []
-    agent = None
 
     for _ in tqdm(time):
         last_state = observation
+        sim_env.reset()
+        # APW 22min
         agent = MctsActionProgressiveWideningHash(
             root_data=observation,
             env=sim_env.unwrapped,
             n_sim=1000,
-            C=0,
+            C=0.0005,
             action_selection_fn=ucb1,
             gamma=1,
             rollout_selection_fn=rollout_fn,
@@ -84,16 +78,9 @@ def main():
         observation, reward, done, extra = real_env.step(action)
         state_log.append(observation)
         extra_log.append(list(extra.values()))
-        # print()
-        # print(f"S: {last_state} A: {action}, S': {observation}, R: {reward}")
-        agent.visualize()
-        break
-        # real_env.render()
     extra_log[-1] = extra_log[-1][:-1]
-    generate_plots(real_env, state_log, extra_log)
-
-    # TODO make comparison graphs
-
+    state_log = np.array(state_log)
+    extra_log = np.array(extra_log)
 
 if __name__ == '__main__':
     main()
