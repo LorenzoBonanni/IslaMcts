@@ -5,7 +5,7 @@ from typing import Any, Union
 import gym
 
 
-@dataclass
+@dataclass(slots=True)
 class MctsParameters:
     # data of the root node
     root_data: Any

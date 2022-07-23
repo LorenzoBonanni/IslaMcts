@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from src.agents.mcts_parameters import MctsParameters
+from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
 
-@dataclass
+@dataclass(slots=True)
 class DpwParameters(MctsParameters):
     # Action Progressive Widening Parameters
     alphaApw: float

@@ -1,4 +1,4 @@
-from src.agents.abstract_mcts import AbstractMcts
+from islaMcts.agents.abstract_mcts import AbstractMcts
 
 
 class RandomAgent(AbstractMcts):

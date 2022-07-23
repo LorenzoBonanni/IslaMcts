@@ -6,7 +6,7 @@ import graphviz
 import numpy as np
 from graphviz import Digraph
 
-from src.agents.mcts_parameters import MctsParameters
+from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
 
 class AbstractMcts(ABC):
@@ -18,13 +18,14 @@ class AbstractMcts(ABC):
         self.data = None
         self.q_values = None
 
+    @abstractmethod
     def fit(self) -> int:
         """
         Starting method, builds the tree and then gives back the best action
 
         :return: the best action
         """
-        raise NotImplementedError
+        print("UNIMPLEMENTED METHOD")
 
     def visualize(self, extension: str = '0') -> None:
         """
@@ -62,7 +63,7 @@ class AbstractStateNode(ABC):
 
     @abstractmethod
     def build_tree(self, max_depth: int):
-        raise NotImplementedError
+        print("UNIMPLEMENTED METHOD")
 
     def rollout(self, max_depth: int) -> float:
         """
@@ -129,7 +130,7 @@ class AbstractActionNode(ABC):
         :param max_depth:  max depth of simulation
         :return:
         """
-        raise NotImplementedError
+        print("UNIMPLEMENTED METHOD")
 
     def visualize(self, n, father, g):
         """

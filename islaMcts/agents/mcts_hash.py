@@ -1,9 +1,10 @@
+from collections import OrderedDict
 from typing import Any
 
 import numpy as np
 
-from src.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
-from src.agents.mcts_parameters import MctsParameters
+from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
+from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
 
 class MctsHash(AbstractMcts):
@@ -13,6 +14,28 @@ class MctsHash(AbstractMcts):
             data=param.root_data,
             param=param
         )
+
+    def fit(self) -> int:
+        """
+        Starting method, builds the tree and then gives back the best action
+
+        :return: the best action
+        """
+        for s in range(self.param.n_sim):
+            self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[self.param.state_variable] = self.param.root_data
+            self.root.build_tree(self.param.max_depth)
+
+        # order actions dictionary so that action indices correspond to the action number
+        self.root.actions = OrderedDict(sorted(self.root.actions.items()))
+
+        # compute q_values
+        vals = np.array([node.total for node in self.root.actions.values()])
+        n_visit = np.array([node.na for node in self.root.actions.values()])
+        q_val = vals / n_visit
+        self.q_values = q_val
+
+        # to avoid biases choose random between the actions with the highest q_value
+        return np.random.choice(np.flatnonzero(q_val == q_val.max()))
 
 
 class StateNodeHash(AbstractStateNode):

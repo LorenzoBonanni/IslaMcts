@@ -5,4 +5,4 @@ matplotlib~=3.5.2
 gym[toy_text]
 joblib~=1.1.0
 tqdm~=4.64.0
-setuptools~=60.2.0
+setuptools==63.2.0

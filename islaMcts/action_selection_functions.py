@@ -3,7 +3,7 @@ import random
 import gym
 import numpy as np
 
-from src.agents.abstract_mcts import AbstractStateNode
+from islaMcts.agents.abstract_mcts import AbstractStateNode
 
 
 def ucb1(node: AbstractStateNode):
