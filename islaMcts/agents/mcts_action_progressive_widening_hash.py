@@ -1,3 +1,4 @@
+import logging
 import math
 from collections import OrderedDict
 from typing import Any
@@ -6,7 +7,7 @@ import numpy as np
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-
+logger = logging.getLogger(__name__)
 
 class MctsActionProgressiveWideningHash(AbstractMcts):
     def __init__(self, param: PwParameters):
@@ -23,6 +24,7 @@ class MctsActionProgressiveWideningHash(AbstractMcts):
         :return: the best action
         """
         for s in range(self.param.n_sim):
+            # logger.debug(f"SIM {s}")
             self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[
                 self.param.state_variable] = self.param.root_data
             self.root.build_tree(self.param.max_depth)
@@ -31,15 +33,14 @@ class MctsActionProgressiveWideningHash(AbstractMcts):
         self.root.actions = OrderedDict(sorted(self.root.actions.items()))
 
         # compute q_values
-        vals = np.array([node.total for node in self.root.actions.values()])
-        n_visit = np.array([node.na for node in self.root.actions.values()])
-        q_val = vals / n_visit
-        self.q_values = q_val
+        self.q_values = np.array([node.q_value for node in self.root.actions.values()])
 
-        # to avoid biases choose random between the actions with the highest q_value
-        index = np.random.choice(np.flatnonzero(q_val == q_val.max()))
-        a = list(self.root.actions.keys())[index]
-        return np.frombuffer(a, dtype=float)
+        # return the action with maximum q_value
+        max_q = max(self.q_values)
+        # get the children which has the maximum q_value
+        max_children = list(filter(lambda c: c.q_value == max_q, list(self.root.actions.values())))
+        policy: ActionNodeProgressiveWideningHash = np.random.choice(max_children)
+        return policy.data
 
 
 class StateNodeProgressiveWideningHash(AbstractStateNode):
@@ -56,17 +57,23 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
         # SELECTION
         if len(self.actions) == 0 or len(self.actions) <= math.ceil(self.param.k * (self.ns ** self.param.alpha)):
             action = self.param.env.action_space.sample()
+            # logger.debug(f"{action}\t-\tRandom")
             action_bytes = action.tobytes()
-            child = ActionNodeProgressiveWideningHash(data=action, param=self.param)
-            self.visit_actions[action_bytes] = 0
-            self.actions[action_bytes] = child
+            child = self.actions.get(action_bytes, None)
+            if child is None:
+                child = ActionNodeProgressiveWideningHash(data=action, param=self.param)
+                self.visit_actions[action_bytes] = 0
+                self.actions[action_bytes] = child
         else:
             action_index = self.param.action_selection_fn(self)
             action_bytes = list(self.visit_actions.keys())[action_index]
             child = self.actions[action_bytes]
 
-        # in order to get instant_reward set the state into the environment to the current state
-        self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[self.param.state_variable] = self.data
+            # ucb_value = (child.total / child.na) + self.param.C* np.sqrt(np.log(self.ns) / child.na)
+            # logger.debug(f"{child.data}\t{ucb_value}\tUCB")
+
+        # # in order to get instant_reward set the state into the environment to the current state
+        # self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[self.param.state_variable] = self.data
         # ROLLOUT + BACKPROPAGATION
         reward = child.build_tree(self.param.max_depth)
         self.ns += 1

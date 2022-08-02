@@ -48,7 +48,7 @@ class AbstractMcts(ABC):
 
 
 class AbstractStateNode(ABC):
-    __slots__ = "data", "param", "terminal", "total", "ns", "actions"
+    __slots__ = "data", "param", "terminal", "total", "ns", "actions", "terminal_reward"
 
     def __init__(self, data: Any, param: MctsParameters):
         self.data = data
@@ -60,6 +60,8 @@ class AbstractStateNode(ABC):
         self.ns = 0
         # dictionary containing mapping between action number and corresponding action node
         self.actions = {}
+        # if the state is terminal save it's terminal reward
+        self.terminal_reward = None
 
     @abstractmethod
     def build_tree(self, max_depth: int):
@@ -121,6 +123,10 @@ class AbstractActionNode(ABC):
         self.na = 0
         self.children = {}
         self.param = param
+
+    @property
+    def q_value(self):
+        return self.total / self.na
 
     @abstractmethod
     def build_tree(self, max_depth: int) -> float:

@@ -4,7 +4,7 @@ import gym
 import numpy as np
 from tqdm import tqdm
 
-from action_selection_functions import ucb1, grid_policy
+from action_selection_functions import ucb1, grid_policy, discrete_default_policy
 from islaMcts.agents.mcts import Mcts
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
@@ -61,8 +61,8 @@ distances = {
     for r in range(4)
 }
 
-rollout_fn = grid_policy(distances, n_actions)
-# rollout_fn = discrete_default_policy(n_actions)
+# rollout_fn = grid_policy(distances, n_actions)
+rollout_fn = discrete_default_policy(n_actions)
 
 times = []
 rewards = []
@@ -100,5 +100,5 @@ for _ in tqdm(range(100)):
         parameters.root_data = observation
     times.append(time.time() - start_time)
 print(f"TIME: {np.mean(times)}")
-print(f"REWARD: {np.mean(rewards)}")
+print(f"N TERMINAL {np.sum(rewards)}")
 # real_env.close()

@@ -6,8 +6,9 @@ from islaMcts.agents.parameters.pw_parameters import PwParameters
 
 
 @dataclass
-class TestData:
+class ExperimentData:
     agent_type: str
     param: MctsParameters | PwParameters | DpwParameters
     continuous: bool
     noise: bool
+    number: int

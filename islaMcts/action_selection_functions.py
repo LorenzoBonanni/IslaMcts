@@ -1,3 +1,4 @@
+import logging
 import random
 
 import gym
@@ -13,7 +14,8 @@ def ucb1(node: AbstractStateNode):
     n_visits = node.ns
     visit_child = []
     node_values = []
-    for c in node.actions.values():
+    children = list(node.actions.values())
+    for c in children:
         visit_child.append(c.na)
         node_values.append(c.total / c.na)
 
@@ -63,17 +65,7 @@ def grid_policy(prior_knowledge, n_actions):
         :return:
         """
         state = env.__dict__[node.param.state_variable]
-        indices = list(range(n_actions))
         ks = np.array(knowledge[state])
-        # probs = [1 / len(indices)] * len(indices)
-        #
-        # knowledge_bias = 1 / ks
-        # knowledge_bias = knowledge_bias / sum(knowledge_bias)
-        #
-        # probs = knowledge_bias + probs
-        # probs = probs / sum(probs)
-        #
-        # sampled_action = random.choices(population=indices, weights=probs)[0]
 
         # to avoid biases if two or more actions have the same value we choose randomly between them
         sampled_action = np.random.choice(np.flatnonzero(ks == ks.min()))

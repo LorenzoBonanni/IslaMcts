@@ -86,6 +86,7 @@ class ActionNodeProgressiveWideningHash(AbstractActionNode):
                 param=self.param
             )
             state.terminal = True
+            state.terminal_reward = instant_reward
             self.children[obs_bytes] = state
 
             self.total += instant_reward
@@ -112,19 +113,17 @@ class ActionNodeProgressiveWideningHash(AbstractActionNode):
             return instant_reward + delayed_reward
         else:
             # SAMPLE FROM VISITED STATES
-            # filter out terminal States
-            children_visits = []
-            children_keys = []
-            for k, c in self.children.items():
-                if not c.terminal:
-                    children_visits.append(c.ns)
-                    children_keys.append(k)
-
-                key = random.choices(
-                    population=list(children_keys),
-                    weights=self.na / np.array(children_visits)
-                )[0]
-                state = self.children[key]
+            key = random.choices(
+                    population=self.children.keys(),
+                    weights=self.na / np.array([c.ns for c in list(self.children.values())])
+            )[0]
+            state = self.children[key]
+            if state.terminal:
+                self.total += state.terminal_reward
+                self.na += 1
+                state.ns += 1
+                return state.terminal_reward
+            else:
                 self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[self.param.state_variable] = state.data
                 # go deeper the tree
                 delayed_reward = self.param.gamma * state.build_tree(max_depth)
