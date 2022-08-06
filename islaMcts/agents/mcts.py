@@ -1,10 +1,13 @@
+import pickle
 from collections import OrderedDict
+from copy import deepcopy
 from typing import Any
 
 import numpy as np
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
+from islaMcts.utils import my_deepcopy
 
 
 class Mcts(AbstractMcts):
@@ -21,22 +24,19 @@ class Mcts(AbstractMcts):
 
         :return: the best action
         """
+        initial_env = my_deepcopy(self.param.env)
         for s in range(self.param.n_sim):
-            self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[
-                self.param.state_variable] = self.param.root_data
+            self.param.env = my_deepcopy(initial_env)
             self.root.build_tree(self.param.max_depth)
 
         # order actions dictionary so that action indices correspond to the action number
         self.root.actions = OrderedDict(sorted(self.root.actions.items()))
 
         # compute q_values
-        vals = np.array([node.total for node in self.root.actions.values()])
-        n_visit = np.array([node.na for node in self.root.actions.values()])
-        q_val = vals / n_visit
-        self.q_values = q_val
+        self.q_values = np.array([node.q_value for node in self.root.actions.values()])
 
         # to avoid biases choose random between the actions with the highest q_value
-        return np.random.choice(np.flatnonzero(q_val == q_val.max()))
+        return np.random.choice(np.flatnonzero(self.q_values == self.q_values.max()))
 
 
 class StateNode(AbstractStateNode):

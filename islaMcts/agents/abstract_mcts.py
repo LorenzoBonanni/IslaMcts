@@ -13,13 +13,13 @@ class AbstractMcts(ABC):
     __slots__ = "param", "root", "data", "q_values"
 
     def __init__(self, param: MctsParameters):
-        self.param = param
-        self.root = None
-        self.data = None
+        self.param: MctsParameters = param
+        self.root: AbstractStateNode | None = None
+        self.data: Any = None
         self.q_values = None
 
     @abstractmethod
-    def fit(self) -> int:
+    def fit(self) -> int | np.ndarray:
         """
         Starting method, builds the tree and then gives back the best action
 
@@ -51,17 +51,17 @@ class AbstractStateNode(ABC):
     __slots__ = "data", "param", "terminal", "total", "ns", "actions", "terminal_reward"
 
     def __init__(self, data: Any, param: MctsParameters):
-        self.data = data
-        self.param = param
-        self.terminal = False
+        self.data: Any = data
+        self.param: MctsParameters = param
+        self.terminal: bool = False
         # total reward
-        self.total = 0
+        self.total: float = 0
         # number of visits of the node
-        self.ns = 0
+        self.ns: int = 0
         # dictionary containing mapping between action number and corresponding action node
-        self.actions = {}
+        self.actions: dict[Any, AbstractActionNode] = {}
         # if the state is terminal save it's terminal reward
-        self.terminal_reward = None
+        self.terminal_reward: float | None = None
 
     @abstractmethod
     def build_tree(self, max_depth: int):
@@ -118,11 +118,11 @@ class AbstractActionNode(ABC):
     __slots__ = "data", "total", "na", "children", "param"
 
     def __init__(self, data: Any, param: MctsParameters):
-        self.data = data
-        self.total = 0
-        self.na = 0
-        self.children = {}
-        self.param = param
+        self.data: Any = data
+        self.total: float = 0
+        self.na: int = 0
+        self.children: dict[Any, AbstractStateNode] = {}
+        self.param: MctsParameters = param
 
     @property
     def q_value(self):

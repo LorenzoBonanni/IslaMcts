@@ -4,9 +4,10 @@ import gym
 import numpy as np
 from tqdm import tqdm
 
-from action_selection_functions import ucb1, grid_policy, discrete_default_policy
+from action_selection_functions import ucb1, continuous_default_policy
 from islaMcts.agents.mcts import Mcts
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
+from islaMcts.utils import my_deepcopy
 
 action_string = {
     0: "LEFT",
@@ -62,41 +63,38 @@ distances = {
 }
 
 # rollout_fn = grid_policy(distances, n_actions)
-rollout_fn = discrete_default_policy(n_actions)
+rollout_fn = continuous_default_policy
 
 times = []
 rewards = []
 
 for _ in tqdm(range(100)):
     real_env = gym.make("FrozenLake-v1", is_slippery=False)
-    sim_env = gym.make("FrozenLake-v1", is_slippery=False)
     observation = real_env.reset()
-    sim_env.reset()
+    sim_env = my_deepcopy(real_env)
     parameters = MctsParameters(
-                C=1,
+                C=0.5,
                 n_sim=100,
                 root_data=observation,
                 env=sim_env.unwrapped,
                 action_selection_fn=ucb1,
                 max_depth=10000,
-                gamma=0.2,
+                gamma=1,
                 rollout_selection_fn=rollout_fn,
                 state_variable="s",
                 n_actions=sim_env.action_space.n
             )
     done = False
-    last_state = None
     start_time = time.time()
     while not done:
-        sim_env.reset()
-        last_state = real_env.unwrapped.s
+        sim_env = my_deepcopy(real_env).unwrapped
+        parameters.env = sim_env
         agent = Mcts(
             param=parameters
         )
         action = agent.fit()
         observation, reward, done, _ = real_env.step(action)
         rewards.append(reward)
-        real_env.s = real_env.unwrapped.s
         parameters.root_data = observation
     times.append(time.time() - start_time)
 print(f"TIME: {np.mean(times)}")
