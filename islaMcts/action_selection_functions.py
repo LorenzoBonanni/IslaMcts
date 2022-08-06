@@ -22,8 +22,8 @@ def ucb1(node: AbstractStateNode):
     ucb_score = np.array(node_values) + node.param.C * np.sqrt(np.log(n_visits) / np.array(visit_child))
 
     # to avoid biases we randomly choose between the actions which maximize the ucb1 score
-    a = np.random.choice(np.flatnonzero(ucb_score == ucb_score.max()))
-    return a
+    index = np.random.choice(np.flatnonzero(ucb_score == ucb_score.max()))
+    return children[index].data
 
 
 def discrete_default_policy(n_actions: int):
