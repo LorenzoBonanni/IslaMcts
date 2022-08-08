@@ -1,5 +1,4 @@
 import dataclasses
-import itertools
 import logging
 import math
 
@@ -7,14 +6,14 @@ import gym
 import numpy as np
 import pandas as pd
 from joblib import Parallel, parallel_backend, delayed
-from tqdm import tqdm
 
-from islaMcts.action_selection_functions import continuous_default_policy, ucb1, discrete_default_policy
+from islaMcts.action_selection_functions import continuous_default_policy, ucb1
 from islaMcts.agent_factory import get_agent
 from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 from islaMcts.agents.parameters.pw_parameters import PwParameters
 from islaMcts.experiment_data import ExperimentData
+from islaMcts.utils import my_deepcopy
 
 time = np.arange(0, 0.4, 0.001)
 logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s - %(message)s', level=logging.DEBUG)
@@ -22,10 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 def run(agent_type: str, params: MctsParameters | PwParameters | DpwParameters, noise: bool, number: int,
-        real_env: gym.Env,
-        sim_env: gym.Env):
+        real_env: gym.Env):
     observation = real_env.reset()
-    params.env = sim_env.unwrapped
 
     state_log = [observation]
     extra_log = []
@@ -35,8 +32,8 @@ def run(agent_type: str, params: MctsParameters | PwParameters | DpwParameters, 
     text = []
 
     for _ in time:
+        params.env = my_deepcopy(real_env)
         params.root_data = observation
-        sim_env.reset()
         agent = get_agent(
             agent_type=agent_type,
             params=params
@@ -56,7 +53,7 @@ def run(agent_type: str, params: MctsParameters | PwParameters | DpwParameters, 
         act_dist.append(actions)
 
         # # SAVE TREE
-        # agent.visualize(str(it))
+        agent.visualize(str(it))
 
         observation, reward, done, extra = real_env.step(action)
         total_reward += reward
@@ -101,14 +98,15 @@ def run_experiment_instance(experiment_data: ExperimentData):
     }
     env_name = env_selector[experiment_data.continuous][experiment_data.noise]
     real_env = gym.make(env_name)
-    sim_env = gym.make(env_name)
+
+    # TODO seed things
 
     return run(experiment_data.agent_type, experiment_data.param, experiment_data.noise, experiment_data.number,
-               real_env, sim_env)
+               real_env)
 
 
 if __name__ == '__main__':
-    n_jobs = -1
+    n_jobs = 1
 
     tests = [
         ExperimentData(
@@ -117,27 +115,7 @@ if __name__ == '__main__':
                 root_data=None,
                 env=None,
                 n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=7
-            ),
-            continuous=True,
-            noise=False,
-            number=1
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
+                C=0.0009,
                 action_selection_fn=ucb1,
                 gamma=1,
                 rollout_selection_fn=continuous_default_policy,
@@ -149,268 +127,8 @@ if __name__ == '__main__':
             ),
             continuous=True,
             noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=9
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=10
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=11
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=7
-            ),
-            continuous=True,
-            noise=False,
             number=1
         ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=8
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=9
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=10
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=11
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=7
-            ),
-            continuous=True,
-            noise=False,
-            number=1
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=8
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=9
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=10
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        ),
-        ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
-                root_data=None,
-                env=None,
-                n_sim=1000,
-                C=0.0005,
-                action_selection_fn=ucb1,
-                gamma=1,
-                rollout_selection_fn=continuous_default_policy,
-                state_variable="_state",
-                max_depth=500,
-                n_actions=11,
-                alpha=0,
-                k=11
-            ),
-            continuous=True,
-            noise=False,
-            number=2
-        )
     ]
 
     with parallel_backend('loky', n_jobs=n_jobs):

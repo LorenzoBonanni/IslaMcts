@@ -7,7 +7,10 @@ import numpy as np
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.pw_parameters import PwParameters
+from islaMcts.utils import my_deepcopy
+
 logger = logging.getLogger(__name__)
+
 
 class MctsActionProgressiveWideningHash(AbstractMcts):
     def __init__(self, param: PwParameters):
@@ -23,14 +26,11 @@ class MctsActionProgressiveWideningHash(AbstractMcts):
 
         :return: the best action
         """
+        initial_env = my_deepcopy(self.param.env)
         for s in range(self.param.n_sim):
             # logger.debug(f"SIM {s}")
-            self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[
-                self.param.state_variable] = self.param.root_data
+            self.param.env = my_deepcopy(initial_env)
             self.root.build_tree(self.param.max_depth)
-
-        # order actions dictionary so that action indices correspond to the action number
-        self.root.actions = OrderedDict(sorted(self.root.actions.items()))
 
         # compute q_values
         self.q_values = np.array([node.q_value for node in self.root.actions.values()])
@@ -65,15 +65,14 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
                 self.visit_actions[action_bytes] = 0
                 self.actions[action_bytes] = child
         else:
-            action_index = self.param.action_selection_fn(self)
-            action_bytes = list(self.visit_actions.keys())[action_index]
+            action = self.param.action_selection_fn(self)
+            action_bytes = action.tobytes()
             child = self.actions[action_bytes]
 
             # ucb_value = (child.total / child.na) + self.param.C* np.sqrt(np.log(self.ns) / child.na)
             # logger.debug(f"{child.data}\t{ucb_value}\tUCB")
 
-        # # in order to get instant_reward set the state into the environment to the current state
-        # self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[self.param.state_variable] = self.data
+
         # ROLLOUT + BACKPROPAGATION
         reward = child.build_tree(self.param.max_depth)
         self.ns += 1
