@@ -25,7 +25,6 @@ class AbstractMcts(ABC):
 
         :return: the best action
         """
-        print("UNIMPLEMENTED METHOD")
 
     def visualize(self, extension: str = '0') -> None:
         """
@@ -65,7 +64,7 @@ class AbstractStateNode(ABC):
 
     @abstractmethod
     def build_tree(self, max_depth: int):
-        print("UNIMPLEMENTED METHOD")
+        raise NotImplementedError
 
     def rollout(self, max_depth: int) -> float:
         """
@@ -136,7 +135,6 @@ class AbstractActionNode(ABC):
         :param max_depth:  max depth of simulation
         :return:
         """
-        print("UNIMPLEMENTED METHOD")
 
     def visualize(self, n, father, g):
         """
