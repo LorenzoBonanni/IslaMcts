@@ -8,35 +8,31 @@ from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractActionNode, Abst
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
 
-class TestMcts(AbstractMcts):
+class MctsTest(AbstractMcts):
     def fit(self) -> int | np.ndarray:
         pass
 
 
-class TestActionNode(AbstractActionNode):
+class ActionNodeTest(AbstractActionNode):
 
     def build_tree(self, max_depth: int) -> float:
         pass
 
 
-class TestStateNode(AbstractStateNode):
+class StateNodeTest(AbstractStateNode):
     def build_tree(self, max_depth: int):
         pass
 
 
-class TestEnv:
-    pass
-
-
 class TestAbstractActionNode(TestCase):
     def test_q_value_division_zero(self):
-        node = TestActionNode(None, None)
+        node = ActionNodeTest(None, None)
         node.total = 10
         with self.assertRaises(ZeroDivisionError):
             result = node.q_value
 
     def test_q_value(self):
-        node = TestActionNode(None, None)
+        node = ActionNodeTest(None, None)
         node.total = 10
         node.na = 2
         result = node.q_value
@@ -59,7 +55,7 @@ class TestAbstractStateNode:
             max_depth=None,
             n_actions=None
         )
-        node = TestStateNode(
+        node = StateNodeTest(
             data=1,
             param=test_param
         )
@@ -74,7 +70,7 @@ class TestAbstractStateNode:
         # GIVEN
         mock_rollout_fn = Mock()
         mock_rollout_fn.return_value = 1
-        test_env = TestEnv()
+        test_env = Mock()
         test_env.step = MagicMock(return_value=test_input)
         test_param = MctsParameters(
             root_data=1,
@@ -88,7 +84,7 @@ class TestAbstractStateNode:
             max_depth=None,
             n_actions=None
         )
-        node = TestStateNode(
+        node = StateNodeTest(
             data=1,
             param=test_param
         )
@@ -103,7 +99,7 @@ class TestAbstractStateNode:
         # GIVEN
         mock_rollout_fn = Mock()
         mock_rollout_fn.return_value = 1
-        test_env = TestEnv()
+        test_env = Mock()
         test_env.step = MagicMock()
         test_env.step.side_effect = [(2, 5, False, None), (2, 10, True, None), (2, 15, False, None)]
         test_param = MctsParameters(
@@ -118,7 +114,7 @@ class TestAbstractStateNode:
             max_depth=None,
             n_actions=None
         )
-        node = TestStateNode(
+        node = StateNodeTest(
             data=1,
             param=test_param
         )
@@ -133,7 +129,7 @@ class TestAbstractStateNode:
         # GIVEN
         mock_rollout_fn = Mock()
         mock_rollout_fn.return_value = 1
-        test_env = TestEnv()
+        test_env = Mock()
         test_env.step = MagicMock()
         test_env.step.side_effect = [(2, 5, False, None), (2, 10, False, None), (2, 15, False, None)]
         test_param = MctsParameters(
@@ -148,7 +144,7 @@ class TestAbstractStateNode:
             max_depth=None,
             n_actions=None
         )
-        node = TestStateNode(
+        node = StateNodeTest(
             data=1,
             param=test_param
         )
