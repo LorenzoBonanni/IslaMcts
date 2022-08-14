@@ -112,7 +112,7 @@ class ActionNode(AbstractActionNode):
                 # go deeper the tree
                 delayed_reward = self.param.gamma * state.build_tree(max_depth)
 
-                # # BACK-PROPAGATION
+                # BACK-PROPAGATION
                 self.total += (instant_reward + delayed_reward)
                 self.na += 1
                 return instant_reward + delayed_reward
