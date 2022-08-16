@@ -5,10 +5,14 @@ import numpy as np
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
-from islaMcts.utils import my_deepcopy
+import islaMcts.utils as utils
 
 
 class MctsHash(AbstractMcts):
+    """
+    MonteCarlo Tree Search Vanilla which uses
+    """
+
     def __init__(self, param: MctsParameters):
         super().__init__(param)
         self.root = StateNodeHash(
@@ -22,19 +26,21 @@ class MctsHash(AbstractMcts):
 
         :return: the best action
         """
-        initial_env = my_deepcopy(self.param.env)
+        initial_env = utils.my_deepcopy(self.param.env)
         for s in range(self.param.n_sim):
-            self.param.env = my_deepcopy(initial_env)
+            self.param.env = utils.my_deepcopy(initial_env)
             self.root.build_tree(self.param.max_depth)
-
-        # order actions dictionary so that action indices correspond to the action number
-        self.root.actions = OrderedDict(sorted(self.root.actions.items()))
 
         # compute q_values
         self.q_values = np.array([node.q_value for node in self.root.actions.values()])
 
-        # to avoid biases choose random between the actions with the highest q_value
-        return np.random.choice(np.flatnonzero(self.q_values == self.q_values.max()))
+        # return the action with maximum q_value
+        max_q = max(self.q_values)
+
+        # get the children which has the maximum q_value
+        max_children = list(filter(lambda c: c.q_value == max_q, list(self.root.actions.values())))
+        policy: ActionNodeHash = np.random.choice(max_children)
+        return policy.data
 
 
 class StateNodeHash(AbstractStateNode):

@@ -5,11 +5,11 @@ import numpy as np
 from parametrize import parametrize
 
 import islaMcts.utils as utils
-from islaMcts.agents.mcts import Mcts, StateNode, ActionNode
+from islaMcts.agents.mcts_hash import MctsHash, StateNodeHash, ActionNodeHash
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
 
-class TestMcts(TestCase):
+class TestMctsHash(TestCase):
 
     def setUp(self):
         self.test_param = MctsParameters(
@@ -24,12 +24,12 @@ class TestMcts(TestCase):
             max_depth=None,
             n_actions=None
         )
-        self.test_class = Mcts(self.test_param)
+        self.test_class = MctsHash(self.test_param)
         acs = {
             1: Mock(q_value=1, data=1),
-            2: Mock(q_value=3, data=3),
+            3: Mock(q_value=3, data=3),
             4: Mock(q_value=4, data=4),
-            3: Mock(q_value=3, data=2)
+            2: Mock(q_value=3, data=2)
         }
         self.test_class.root = Mock(actions=acs)
 
@@ -44,7 +44,7 @@ class TestMcts(TestCase):
         # THEN
         my_deepcopy_mock.assert_called_once()
         self.assertEqual(my_deepcopy_mock.call_count, 1)
-        self.assertEqual(result, 4)
+        self.assertEqual(4, result)
 
     @parametrize("n_sim", [0, 1, 2, 5, 10, 100])
     def test_fit_variable_nsim(self, n_sim):
@@ -58,7 +58,7 @@ class TestMcts(TestCase):
 
         # THEN
         self.assertEqual(my_deepcopy_mock.call_count, n_sim + 1)
-        self.assertEqual(result, 4)
+        self.assertEqual(np.array(4), result)
 
     @mock.patch("builtins.max")
     def test_fit(self, mock_max):
@@ -72,7 +72,7 @@ class TestMcts(TestCase):
         self.assertIn(result, [2, 3])
 
 
-class TestStateNode(TestCase):
+class TestStateNodeHash(TestCase):
     def setUp(self) -> None:
         self.test_param = MctsParameters(
             root_data=None,
@@ -86,9 +86,9 @@ class TestStateNode(TestCase):
             max_depth=None,
             n_actions=1
         )
-        self.test_class = StateNode(None, self.test_param)
+        self.test_class = StateNodeHash(None, self.test_param)
 
-    @patch.object(ActionNode, 'build_tree')
+    @patch.object(ActionNodeHash, 'build_tree')
     def test_build_tree_zero_in_visit_action(self, mocked_build_tree):
         # GIVEN
         mocked_build_tree.return_value = 5
@@ -97,12 +97,12 @@ class TestStateNode(TestCase):
         result = self.test_class.build_tree(10)
 
         # THEN
-        self.assertEqual(list(self.test_class.actions.keys())[0], 0)
-        self.assertEqual(self.test_class.ns, 1)
-        self.assertEqual(self.test_class.visit_actions[0], 1)
-        self.assertEqual(self.test_class.total, 4.5)
-        self.assertEqual(self.test_class.actions[0].data, 0)
-        self.assertEqual(result, 5)
+        self.assertEqual(0, list(self.test_class.actions.keys())[0])
+        self.assertEqual(1, self.test_class.ns)
+        self.assertEqual(1, self.test_class.visit_actions[0])
+        self.assertEqual(4.5, self.test_class.total)
+        self.assertEqual(0, self.test_class.actions[0].data)
+        self.assertEqual(5, result)
 
     def test_build_tree_non_zero_in_visit_action(self):
         # GIVEN
@@ -119,13 +119,13 @@ class TestStateNode(TestCase):
         result = self.test_class.build_tree(10)
 
         # THEN
-        self.assertEqual(self.test_class.ns, 1)
-        self.assertEqual(self.test_class.visit_actions[1], 2)
-        self.assertEqual(self.test_class.total, 4.5)
-        self.assertEqual(result, 5)
+        self.assertEqual(1, self.test_class.ns)
+        self.assertEqual(2, self.test_class.visit_actions[1])
+        self.assertEqual(4.5, self.test_class.total)
+        self.assertEqual(5, result)
 
 
-class TestActionNode(TestCase):
+class TestActionNodeHash(TestCase):
     def setUp(self) -> None:
         self.test_param = MctsParameters(
             root_data=None,
@@ -139,7 +139,7 @@ class TestActionNode(TestCase):
             max_depth=None,
             n_actions=1
         )
-        self.test_class = ActionNode(None, self.test_param)
+        self.test_class = ActionNodeHash(None, self.test_param)
 
     # 4 cases
     # Case 1 - Terminal State, State None
@@ -149,43 +149,46 @@ class TestActionNode(TestCase):
     def test_build_tree_terminal_state_none(self):
         # GIVEN
         # return values: (observation, instant_reward, terminal, _)
-        observation = 1
+        observation = np.array(1)
+        observation_hash = b'\x01\x00\x00\x00\x00\x00\x00\x00'
         self.test_param.env.step = MagicMock(return_value=(observation, 5, True, None))
 
         # WHEN
         result = self.test_class.build_tree(10)
 
         # THEN
-        self.assertEqual(list(self.test_class.children.keys())[0], 1)
-        self.assertEqual(self.test_class.children[observation].data, 1)
-        self.assertTrue(self.test_class.children[observation].terminal)
-        self.assertEqual(self.test_class.children[observation].ns, 1)
-        self.assertEqual(self.test_class.total, 5)
-        self.assertEqual(self.test_class.na, 1)
-        self.assertEqual(result, 5)
+        self.assertEqual(observation_hash, list(self.test_class.children.keys())[0])
+        self.assertEqual(observation, self.test_class.children[observation_hash].data)
+        self.assertTrue(self.test_class.children[observation_hash].terminal)
+        self.assertEqual(1, self.test_class.children[observation_hash].ns)
+        self.assertEqual(5, self.test_class.total)
+        self.assertEqual(1, self.test_class.na)
+        self.assertEqual(5, result)
 
     def test_build_tree_terminal_state_not_none(self):
         # GIVEN
+        observation = np.array(1)
+        observation_hash = b'\x01\x00\x00\x00\x00\x00\x00\x00'
         # return values: (observation, instant_reward, terminal, _)
-        observation = 1
         self.test_param.env.step = MagicMock(return_value=(observation, 5, True, None))
         mock_child = Mock(data=observation, param=self.test_param, ns=0)
-        self.test_class.children[observation] = mock_child
+        self.test_class.children[observation_hash] = mock_child
 
         # WHEN
         result = self.test_class.build_tree(10)
 
         # THEN
-        self.assertEqual(mock_child.ns, 1)
-        self.assertEqual(self.test_class.total, 5)
-        self.assertEqual(self.test_class.na, 1)
-        self.assertEqual(result, 5)
+        self.assertEqual(1, mock_child.ns)
+        self.assertEqual(5, self.test_class.total)
+        self.assertEqual(1, self.test_class.na)
+        self.assertEqual(5, result)
 
-    @patch.object(StateNode, 'rollout')
+    @patch.object(StateNodeHash, 'rollout')
     def test_build_tree_not_terminal_state_none(self, mocked_rollout):
         # GIVEN
+        observation = np.array(1)
+        observation_hash = b'\x01\x00\x00\x00\x00\x00\x00\x00'
         # return values: (observation, instant_reward, terminal, _)
-        observation = 1
         self.test_param.env.step = MagicMock(return_value=(observation, 5, False, None))
         mocked_rollout.return_value = 5
 
@@ -193,27 +196,28 @@ class TestActionNode(TestCase):
         result = self.test_class.build_tree(10)
 
         # THEN
-        self.assertEqual(list(self.test_class.children.keys())[0], observation)
-        self.assertEqual(self.test_class.children[observation].data, observation)
-        self.assertFalse(self.test_class.children[observation].terminal)
-        self.assertEqual(self.test_class.children[observation].ns, 1)
-        self.assertEqual(self.test_class.total, 9.5)
-        self.assertEqual(self.test_class.na, 1)
-        self.assertEqual(result, 9.5)
+        self.assertEqual(observation_hash, list(self.test_class.children.keys())[0])
+        self.assertEqual(observation, self.test_class.children[observation_hash].data)
+        self.assertFalse(self.test_class.children[observation_hash].terminal)
+        self.assertEqual(1, self.test_class.children[observation_hash].ns)
+        self.assertEqual(9.5, self.test_class.total)
+        self.assertEqual(1, self.test_class.na)
+        self.assertEqual(9.5, result)
 
     def test_build_tree_not_terminal_state_not_none(self):
         # GIVEN
+        observation = np.array(1)
+        observation_hash = b'\x01\x00\x00\x00\x00\x00\x00\x00'
         # return values: (observation, instant_reward, terminal, _)
-        observation = 1
         self.test_param.env.step = MagicMock(return_value=(observation, 5, False, None))
         mock_child = Mock(data=observation, param=self.test_param, ns=0)
         mock_child.build_tree = MagicMock(return_value=5)
-        self.test_class.children[observation] = mock_child
+        self.test_class.children[observation_hash] = mock_child
 
         # WHEN
         result = self.test_class.build_tree(10)
 
         # THEN
-        self.assertEqual(self.test_class.total, 9.5)
-        self.assertEqual(self.test_class.na, 1)
-        self.assertEqual(result, 9.5)
+        self.assertEqual(9.5, self.test_class.total)
+        self.assertEqual(1, self.test_class.na)
+        self.assertEqual(9.5, result)
