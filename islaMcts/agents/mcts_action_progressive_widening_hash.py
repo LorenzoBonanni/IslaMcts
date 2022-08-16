@@ -5,11 +5,12 @@ from typing import Any
 
 import numpy as np
 
+from islaMcts import utils
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-from islaMcts.utils import my_deepcopy
 
-logger = logging.getLogger(__name__)
+
+# logger = logging.getLogger(__name__)
 
 
 class MctsActionProgressiveWideningHash(AbstractMcts):
@@ -26,10 +27,10 @@ class MctsActionProgressiveWideningHash(AbstractMcts):
 
         :return: the best action
         """
-        initial_env = my_deepcopy(self.param.env)
+        initial_env = utils.my_deepcopy(self.param.env)
         for s in range(self.param.n_sim):
             # logger.debug(f"SIM {s}")
-            self.param.env = my_deepcopy(initial_env)
+            self.param.env = utils.my_deepcopy(initial_env)
             self.root.build_tree(self.param.max_depth)
 
         # compute q_values
@@ -71,7 +72,6 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
 
             # ucb_value = (child.total / child.na) + self.param.C* np.sqrt(np.log(self.ns) / child.na)
             # logger.debug(f"{child.data}\t{ucb_value}\tUCB")
-
 
         # ROLLOUT + BACKPROPAGATION
         reward = child.build_tree(self.param.max_depth)
