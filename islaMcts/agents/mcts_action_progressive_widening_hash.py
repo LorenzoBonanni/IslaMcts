@@ -57,7 +57,7 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
         """
         # SELECTION
         if len(self.actions) == 0 or len(self.actions) <= math.ceil(self.param.k * (self.ns ** self.param.alpha)):
-            action = self.param.env.action_space.sample()
+            action = self.param.action_expansion_function(self)
             # logger.debug(f"{action}\t-\tRandom")
             action_bytes = action.tobytes()
             child = self.actions.get(action_bytes, None)

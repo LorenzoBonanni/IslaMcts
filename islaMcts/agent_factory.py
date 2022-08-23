@@ -1,6 +1,7 @@
 from collections.abc import Hashable
 
 from islaMcts.agents.abstract_mcts import AbstractMcts
+from islaMcts.agents.optimal_agent import OptimalAgent
 from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.mcts import Mcts
 from islaMcts.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
@@ -39,5 +40,8 @@ def get_agent(agent_type: str, params: MctsParameters | PwParameters | DpwParame
             raise NotImplementedError
     elif agent_type == "random":
         return RandomAgent(params)
+    elif agent_type == "optimal_goddard":
+        return OptimalAgent(params)
     else:
         raise NotImplementedError
+    

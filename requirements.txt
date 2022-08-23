@@ -10,3 +10,4 @@ setuptools==64.0.3
 pandas~=1.4.3
 pytest~=7.1.2
 parametrize~=0.1.1
+protobuf==3.20.*

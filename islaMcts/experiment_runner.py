@@ -7,7 +7,9 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, parallel_backend, delayed
 
-from islaMcts.action_selection_functions import continuous_default_policy, ucb1
+import gym_goddard.envs.goddard_env as goddard_env
+import gym_goddard.envs.goddard_discrete_env as goddard_discrete_env
+from islaMcts.action_selection_functions import continuous_default_policy, ucb1, genetic_policy
 from islaMcts.agent_factory import get_agent
 from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
@@ -48,12 +50,12 @@ def run(agent_type: str, params: MctsParameters | PwParameters | DpwParameters, 
         text.append(f"Chosen: {np.array2string(action, precision=10)}")
         text.append("\n")
 
-        # SAVE ACTION DISTRIBUTION
-        actions = np.array([a.data[0] for a in agent.root.actions.values()])
-        act_dist.append(actions)
+        # # SAVE ACTION DISTRIBUTION
+        # actions = np.array([a.data[0] for a in agent.root.actions.values()])
+        # act_dist.append(actions)
 
         # # SAVE TREE
-        agent.visualize(str(it))
+        # agent.visualize(str(it))
 
         observation, reward, done, extra = real_env.step(action)
         total_reward += reward
@@ -61,7 +63,7 @@ def run(agent_type: str, params: MctsParameters | PwParameters | DpwParameters, 
         extra_log.append(list(extra.values()))
         it += 1
 
-    extra_log[-1] = extra_log[-1][:-1]
+    # extra_log[-1] = extra_log[-1][:-1]
     state_log = np.array(state_log)
     np.savetxt(fname=f"../output/log/state_log_{agent_type}_{number}{'_Noise' if noise else ''}.csv", X=state_log,
                delimiter=",")
@@ -80,24 +82,41 @@ def run(agent_type: str, params: MctsParameters | PwParameters | DpwParameters, 
 def run_experiment_instance(experiment_data: ExperimentData):
     # First Key -> Continuous
     # Second Key -> Noise
+    # env_selector = {
+    #     # Continuous
+    #     True: {
+    #         # Continuous + Noise
+    #         True: 'gym_goddard:GoddardNoise-v0',
+    #         # Continuous Simple
+    #         False: 'gym_goddard:Goddard-v0'
+    #     },
+    #     # Discrete
+    #     False: {
+    #         # Discrete + Noise
+    #         True: 'gym_goddard:GoddardDiscreteNoise-v0',
+    #         # Discrete Simple
+    #         False: 'gym_goddard:GoddardDiscrete-v0'
+    #     }
+    # }
     env_selector = {
         # Continuous
         True: {
             # Continuous + Noise
             True: 'gym_goddard:GoddardNoise-v0',
             # Continuous Simple
-            False: 'gym_goddard:Goddard-v0'
+            False:  goddard_env.GoddardEnv()
         },
         # Discrete
         False: {
             # Discrete + Noise
             True: 'gym_goddard:GoddardDiscreteNoise-v0',
             # Discrete Simple
-            False: 'gym_goddard:GoddardDiscrete-v0'
+            False: goddard_discrete_env.GoddardEnv()
         }
     }
-    env_name = env_selector[experiment_data.continuous][experiment_data.noise]
-    real_env = gym.make(env_name)
+    # env_name = env_selector[experiment_data.continuous][experiment_data.noise]
+    # real_env = gym.make(env_name)
+    real_env = env_selector[experiment_data.continuous][experiment_data.noise]
 
     # TODO seed things
 
@@ -106,28 +125,188 @@ def run_experiment_instance(experiment_data: ExperimentData):
 
 
 if __name__ == '__main__':
-    n_jobs = 1
+    n_jobs = -1
 
     tests = [
         ExperimentData(
-            agent_type="apw",
-            param=PwParameters(
+            agent_type="vanilla",
+            param=MctsParameters(
                 root_data=None,
                 env=None,
                 n_sim=1000,
-                C=0.0009,
+                C=0.0005,
                 action_selection_fn=ucb1,
                 gamma=1,
                 rollout_selection_fn=continuous_default_policy,
                 state_variable="_state",
                 max_depth=500,
                 n_actions=11,
-                alpha=0,
-                k=8
             ),
-            continuous=True,
+            continuous=False,
             noise=False,
             number=1
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=2
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=3
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=4
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=5
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=6
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=7
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=8
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=9
+        ),
+        ExperimentData(
+            agent_type="vanilla",
+            param=MctsParameters(
+                root_data=None,
+                env=None,
+                n_sim=1000,
+                C=0.0005,
+                action_selection_fn=ucb1,
+                gamma=1,
+                rollout_selection_fn=continuous_default_policy,
+                state_variable="_state",
+                max_depth=500,
+                n_actions=11,
+            ),
+            continuous=False,
+            noise=False,
+            number=10
         ),
     ]
 

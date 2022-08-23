@@ -3,6 +3,7 @@ import random
 
 import gym
 import numpy as np
+from scipy.spatial import distance
 
 from islaMcts.agents.abstract_mcts import AbstractStateNode
 
@@ -44,8 +45,64 @@ def discrete_default_policy(n_actions: int):
     return policy
 
 
-def continuous_default_policy(env, *args, **kwargs):
-    return env.action_space.sample()
+def continuous_default_policy(node: AbstractStateNode, *args, **kwargs):
+    return node.param.env.action_space.sample()
+
+
+def genetic_policy(epsilon, default_policy):
+    epsilon = epsilon
+    n_samples = 5
+    default_policy = default_policy
+
+    def policy(node: AbstractStateNode):
+        action_space = node.param.env.action_space
+        if node.ns == 0:
+            if action_space.low < 0:
+                return (action_space.high + action_space.low) / 2
+            else:
+                return (action_space.high - action_space.low) / 2
+        elif node.ns == 1:
+            return random.choices([action_space.high, action_space.low])[0]
+        elif node.ns == 2:
+            if action_space.high.tobytes() in node.actions:
+                return action_space.low
+            else:
+                return action_space.high
+        else:
+            p = np.random.random()
+            if p < epsilon:
+                actions = [node for node in node.actions.values()]
+                actions.sort(key=lambda n: n.q_value)
+                best_action = actions[0].data
+                if best_action > actions[1].data:
+                    space = gym.spaces.Box(
+                        low=actions[1].data,
+                        high=best_action,
+                        shape=action_space.shape,
+                        dtype=action_space.dtype
+                    )
+                else:
+                    space = gym.spaces.Box(
+                        low=best_action,
+                        high=actions[1].data,
+                        shape=action_space.shape,
+                        dtype=action_space.dtype
+                    )
+                # hybrid action between two best actions
+                # sample random between the two best actions and then choose the one nearer to the best
+                best_dist = np.inf
+                best_found = None
+                for s in range(n_samples):
+                    sample = space.sample()
+                    dist = distance.euclidean(best_action, sample)
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_found = sample
+                return best_found
+            else:
+                return default_policy(node)
+
+    return policy
 
 
 def grid_policy(prior_knowledge, n_actions):

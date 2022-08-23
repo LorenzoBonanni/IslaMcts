@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Callable
 
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
@@ -7,3 +8,4 @@ from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 class PwParameters(MctsParameters):
     alpha: float
     k: int
+    action_expansion_function: Callable
