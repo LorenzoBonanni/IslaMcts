@@ -51,7 +51,7 @@ class TestMcts(TestCase):
         # GIVEN
         self.test_param.n_sim = n_sim
         my_deepcopy_mock = utils.my_deepcopy = Mock(return_value="mocked stuff")
-        self.test_class.root.build_tree = Mock(return_value="mocked stuff")
+        self.test_class.root.build_tree_state = Mock(return_value="mocked stuff")
 
         # WHEN
         result = self.test_class.fit()
@@ -94,7 +94,7 @@ class TestStateNode(TestCase):
         mocked_build_tree.return_value = 5
 
         # WHEN
-        result = self.test_class.build_tree(10)
+        result = self.test_class.build_tree_state(10)
 
         # THEN
         self.assertEqual(list(self.test_class.actions.keys())[0], 0)
@@ -116,7 +116,7 @@ class TestStateNode(TestCase):
         child.build_tree = MagicMock(return_value=5)
 
         # WHEN
-        result = self.test_class.build_tree(10)
+        result = self.test_class.build_tree_state(10)
 
         # THEN
         self.assertEqual(self.test_class.ns, 1)
@@ -153,7 +153,7 @@ class TestActionNode(TestCase):
         self.test_param.env.step = MagicMock(return_value=(observation, 5, True, None))
 
         # WHEN
-        result = self.test_class.build_tree(10)
+        result = self.test_class.build_tree_action(10)
 
         # THEN
         self.assertEqual(list(self.test_class.children.keys())[0], 1)
@@ -173,7 +173,7 @@ class TestActionNode(TestCase):
         self.test_class.children[observation] = mock_child
 
         # WHEN
-        result = self.test_class.build_tree(10)
+        result = self.test_class.build_tree_action(10)
 
         # THEN
         self.assertEqual(mock_child.ns, 1)
@@ -190,7 +190,7 @@ class TestActionNode(TestCase):
         mocked_rollout.return_value = 5
 
         # WHEN
-        result = self.test_class.build_tree(10)
+        result = self.test_class.build_tree_action(10)
 
         # THEN
         self.assertEqual(list(self.test_class.children.keys())[0], observation)
@@ -211,7 +211,7 @@ class TestActionNode(TestCase):
         self.test_class.children[observation] = mock_child
 
         # WHEN
-        result = self.test_class.build_tree(10)
+        result = self.test_class.build_tree_action(10)
 
         # THEN
         self.assertEqual(self.test_class.total, 9.5)

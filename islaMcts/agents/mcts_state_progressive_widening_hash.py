@@ -23,7 +23,7 @@ class MctsStateProgressiveWideningHash(AbstractMcts):
         for s in range(self.param.n_sim):
             self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[
                 self.param.state_variable] = self.param.root_data
-            self.root.build_tree(self.param.max_depth)
+            self.root.build_tree_state(self.param.max_depth)
 
         # order actions dictionary so that action indices correspond to the action number
         self.root.actions = OrderedDict(sorted(self.root.actions.items()))
@@ -44,7 +44,7 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
         super().__init__(data, param)
         self.visit_actions = np.zeros(param.n_actions)
 
-    def build_tree(self, max_depth):
+    def build_tree_state(self, max_depth):
         """
         go down the tree until a leaf is reached and do rollout from that
         :param max_depth:  max depth of simulation
@@ -60,7 +60,7 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
         else:
             action = self.param.action_selection_fn(self)
             child = self.actions.get(action)
-        reward = child.build_tree(max_depth)
+        reward = child.build_tree_action(max_depth)
         self.ns += 1
         self.visit_actions[action] += 1
         self.total += self.param.gamma * reward
@@ -69,7 +69,7 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
 
 class ActionNodeProgressiveWideningHash(AbstractActionNode):
 
-    def build_tree(self, max_depth) -> float:
+    def build_tree_action(self, max_depth) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
         :param max_depth:  max depth of simulation
@@ -126,5 +126,5 @@ class ActionNodeProgressiveWideningHash(AbstractActionNode):
             else:
                 self.param.env.__dict__[self.param.state_variable] = self.param.env.unwrapped.__dict__[self.param.state_variable] = state.data
                 # go deeper the tree
-                delayed_reward = self.param.gamma * state.build_tree(max_depth)
+                delayed_reward = self.param.gamma * state.build_tree_state(max_depth)
                 return instant_reward + delayed_reward

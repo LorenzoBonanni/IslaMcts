@@ -53,7 +53,7 @@ class TestMctsActionProgressiveWideningHash(TestCase):
         # GIVEN
         self.test_param.n_sim = n_sim
         my_deepcopy_mock = utils.my_deepcopy = Mock(return_value="mocked stuff")
-        self.test_class.root.build_tree = Mock(return_value="mocked stuff")
+        self.test_class.root.build_tree_state = Mock(return_value="mocked stuff")
 
         # WHEN
         result = self.test_class.fit()
@@ -107,7 +107,7 @@ class TestStateNodeProgressiveWideningHash(TestCase):
         mocked_build_tree.return_value = 5
 
         # WHEN
-        result = self.test_class.build_tree(10)
+        result = self.test_class.build_tree_state(10)
 
         # THEN
         self.assertEqual(action_bytes, list(self.test_class.actions.keys())[0])
@@ -130,7 +130,7 @@ class TestStateNodeProgressiveWideningHash(TestCase):
         self.test_class.ns = 1
 
         # WHEN
-        result = self.test_class.build_tree(10)
+        result = self.test_class.build_tree_state(10)
 
         # THEN
         self.assertEqual(action_bytes, list(self.test_class.actions.keys())[0])

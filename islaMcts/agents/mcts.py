@@ -25,7 +25,7 @@ class Mcts(AbstractMcts):
         initial_env = utils.my_deepcopy(self.param.env)
         for s in range(self.param.n_sim):
             self.param.env = utils.my_deepcopy(initial_env)
-            self.root.build_tree(self.param.max_depth)
+            self.root.build_tree_state(self.param.max_depth)
 
         # compute q_values
         self.q_values = np.array([node.q_value for node in self.root.actions.values()])
@@ -44,7 +44,7 @@ class StateNode(AbstractStateNode):
         super().__init__(data, param)
         self.visit_actions = np.zeros(param.n_actions)
 
-    def build_tree(self, max_depth: int):
+    def build_tree_state(self, max_depth: int):
         """
         go down the tree until a leaf is reached and do rollout from that
 
@@ -61,7 +61,7 @@ class StateNode(AbstractStateNode):
         else:
             action = self.param.action_selection_fn(self)
             child = self.actions.get(action)
-        reward = child.build_tree(max_depth)
+        reward = child.build_tree_action(max_depth)
         self.ns += 1
         self.visit_actions[action] += 1
         self.total += self.param.gamma * reward
@@ -70,7 +70,7 @@ class StateNode(AbstractStateNode):
 
 class ActionNode(AbstractActionNode):
 
-    def build_tree(self, max_depth: int) -> float:
+    def build_tree_action(self, max_depth: int) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
 
@@ -110,7 +110,7 @@ class ActionNode(AbstractActionNode):
                 return instant_reward + delayed_reward
             else:
                 # go deeper the tree
-                delayed_reward = self.param.gamma * state.build_tree(max_depth)
+                delayed_reward = self.param.gamma * state.build_tree_state(max_depth)
 
                 # BACK-PROPAGATION
                 self.total += (instant_reward + delayed_reward)

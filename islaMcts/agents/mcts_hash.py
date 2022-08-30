@@ -2,6 +2,7 @@ from collections import OrderedDict
 from typing import Any
 
 import numpy as np
+from rl_agents.agents.common.factory import safe_deepcopy_env
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
@@ -26,10 +27,14 @@ class MctsHash(AbstractMcts):
 
         :return: the best action
         """
-        initial_env = utils.my_deepcopy(self.param.env)
+        initial_env = safe_deepcopy_env(self.param.env)
+        # self.param.env.save_last_observation()
         for s in range(self.param.n_sim):
-            self.param.env = utils.my_deepcopy(initial_env)
-            self.root.build_tree(self.param.max_depth)
+            # self.param.env.reset_sim()
+            self.param.env = safe_deepcopy_env(initial_env)
+            self.root.build_tree_state(self.param.max_depth)
+
+        # self.param.env.reset_sim()
 
         # compute q_values
         self.q_values = np.array([node.q_value for node in self.root.actions.values()])
@@ -49,7 +54,7 @@ class StateNodeHash(AbstractStateNode):
         super().__init__(data, param)
         self.visit_actions = np.zeros(param.n_actions)
 
-    def build_tree(self, max_depth):
+    def build_tree_state(self, max_depth):
         """
         go down the tree until a leaf is reached and do rollout from that
         :param max_depth:  max depth of simulation
@@ -65,7 +70,7 @@ class StateNodeHash(AbstractStateNode):
         else:
             action = self.param.action_selection_fn(self)
             child = self.actions.get(action)
-        reward = child.build_tree(max_depth)
+        reward = child.build_tree_action(max_depth)
         self.ns += 1
         self.visit_actions[action] += 1
         self.total += self.param.gamma * reward
@@ -73,7 +78,7 @@ class StateNodeHash(AbstractStateNode):
 
 
 class ActionNodeHash(AbstractActionNode):
-    def build_tree(self, max_depth) -> float:
+    def build_tree_action(self, max_depth) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
         :param max_depth:  max depth of simulation
@@ -114,7 +119,7 @@ class ActionNodeHash(AbstractActionNode):
                 return instant_reward + delayed_reward
             else:
                 # go deeper the tree
-                delayed_reward = self.param.gamma * state.build_tree(max_depth)
+                delayed_reward = self.param.gamma * state.build_tree_state(max_depth)
 
                 # # BACK-PROPAGATION
                 self.total += (instant_reward + delayed_reward)

@@ -49,9 +49,9 @@ def continuous_default_policy(node: AbstractStateNode, *args, **kwargs):
     return node.param.env.action_space.sample()
 
 
-def genetic_policy(epsilon, default_policy):
+def genetic_policy(epsilon, default_policy, n_samples):
     epsilon = epsilon
-    n_samples = 5
+    n_samples = n_samples
     default_policy = default_policy
 
     def policy(node: AbstractStateNode):

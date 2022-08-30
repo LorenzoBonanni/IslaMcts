@@ -63,7 +63,7 @@ class AbstractStateNode(ABC):
         self.terminal_reward: float | None = None
 
     @abstractmethod
-    def build_tree(self, max_depth: int):
+    def build_tree_state(self, max_depth: int):
         raise NotImplementedError
 
     def rollout(self, max_depth: int) -> float:
@@ -128,7 +128,7 @@ class AbstractActionNode(ABC):
         return self.total / self.na
 
     @abstractmethod
-    def build_tree(self, max_depth: int) -> float:
+    def build_tree_action(self, max_depth: int) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
 

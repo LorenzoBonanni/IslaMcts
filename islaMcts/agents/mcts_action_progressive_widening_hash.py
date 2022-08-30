@@ -8,7 +8,7 @@ import numpy as np
 from islaMcts import utils
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-
+from rl_agents.agents.common.factory import safe_deepcopy_env
 
 # logger = logging.getLogger(__name__)
 
@@ -27,11 +27,15 @@ class MctsActionProgressiveWideningHash(AbstractMcts):
 
         :return: the best action
         """
-        initial_env = utils.my_deepcopy(self.param.env)
+        initial_env = safe_deepcopy_env(self.param.env)
+        # self.param.env.save_last_observation()
         for s in range(self.param.n_sim):
             # logger.debug(f"SIM {s}")
-            self.param.env = utils.my_deepcopy(initial_env)
-            self.root.build_tree(self.param.max_depth)
+            self.param.env = safe_deepcopy_env(initial_env)
+            # self.root.data = self.param.env.reset_sim()
+            self.root.build_tree_state(self.param.max_depth)
+
+        # self.param.env.reset_sim()
 
         # compute q_values
         self.q_values = np.array([node.q_value for node in self.root.actions.values()])
@@ -49,7 +53,7 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
         super().__init__(data, param)
         self.visit_actions = {}
 
-    def build_tree(self, max_depth):
+    def build_tree_state(self, max_depth):
         """
         go down the tree until a leaf is reached and do rollout from that
         :param max_depth:  max depth of simulation
@@ -74,7 +78,7 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
             # logger.debug(f"{child.data}\t{ucb_value}\tUCB")
 
         # ROLLOUT + BACKPROPAGATION
-        reward = child.build_tree(self.param.max_depth)
+        reward = child.build_tree_action(self.param.max_depth)
         self.ns += 1
         self.visit_actions[action_bytes] += 1
         self.total += reward
@@ -83,7 +87,7 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
 
 class ActionNodeProgressiveWideningHash(AbstractActionNode):
 
-    def build_tree(self, max_depth) -> float:
+    def build_tree_action(self, max_depth) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
         :param max_depth:  max depth of simulation
@@ -125,7 +129,7 @@ class ActionNodeProgressiveWideningHash(AbstractActionNode):
                 return instant_reward + delayed_reward
             else:
                 # go deeper the tree
-                delayed_reward = self.param.gamma * state.build_tree(max_depth)
+                delayed_reward = self.param.gamma * state.build_tree_state(max_depth)
 
                 # # BACK-PROPAGATION
                 self.total += (instant_reward + delayed_reward)
