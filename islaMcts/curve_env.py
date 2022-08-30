@@ -20,7 +20,7 @@ from numpy import ndarray
 
 
 class Car:
-    def __init__(self, x, y, angle=0.0, length=2, max_steering=30, max_acceleration=5.0):
+    def __init__(self, x, y, angle=0.0, length=2, max_steering=30.0, max_acceleration=5.0):
         self.angular_velocity = 0.0
         self.position = np.array([x, y]).astype(float)
         self.velocity = np.array([0.0, 0.0])
@@ -28,7 +28,7 @@ class Car:
         self.length = length
         self.max_acceleration = max_acceleration
         self.max_steering = max_steering
-        self.max_velocity = 10
+        self.max_velocity = 10.0
 
         # Position x, Position y, Velocity x, Velocity y, angular_velocity
         self.state = np.array([*self.position, *self.velocity, self.angular_velocity])
@@ -53,11 +53,13 @@ class Car:
         self.position += np.dot(rot, self.velocity) * dt
         self.angle += degrees(self.angular_velocity) * dt
 
+        self.state = np.array([*self.position, *self.velocity, self.angular_velocity])
+
 
 class CurveEnv(gym.Env):
     def __init__(self):
         self.car = None
-        self.dt = 0.002
+        self.dt = 0.06
         self.max_y = 30
         self.reset()
         # Position x, Position y, Velocity x, Velocity y, angular velocity
@@ -67,13 +69,13 @@ class CurveEnv(gym.Env):
             shape=(5,),
             dtype=float
         )
-        # velocity, steering
-        # velocity 0 <-> 10
+        # acceleration, steering
+        # acceleration 0 <-> 5
         # steering -30 <-> 30
         self.action_space = gym.spaces.Box(
-            low=np.array([0, -1 * self.car.max_steering]),
-            high=np.array([self.car.max_velocity, self.car.max_steering]),
-            shape=(2,)
+            low=np.array([0.0, -1 * self.car.max_steering]),
+            high=np.array([self.car.max_acceleration, self.car.max_steering]),
+            shape=(2,),
         )
         # rendering stuff
         # self.car_image = None
@@ -141,8 +143,8 @@ class CurveEnv(gym.Env):
         seed: Optional[int] = None,
         return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[ObsType, Tuple[ObsType, dict]]:
-        self.car = Car(2, 0.5)
+    ) -> ndarray:
+        self.car = Car(2, 2)
         return self.car.state
 
     def render(self, mode="human") -> Optional[Union[RenderFrame, List[RenderFrame]]]:
