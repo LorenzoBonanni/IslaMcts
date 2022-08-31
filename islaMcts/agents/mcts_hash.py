@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from typing import Any
 
 import numpy as np
@@ -6,7 +5,6 @@ from rl_agents.agents.common.factory import safe_deepcopy_env
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
-import islaMcts.utils as utils
 
 
 class MctsHash(AbstractMcts):

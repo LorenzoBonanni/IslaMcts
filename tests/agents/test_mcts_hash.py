@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, MagicMock
 import numpy as np
 from parametrize import parametrize
 
-import islaMcts.utils as utils
+import islaMcts.utils.mcts_utils as utils
 from islaMcts.agents.mcts_hash import MctsHash, StateNodeHash, ActionNodeHash
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 

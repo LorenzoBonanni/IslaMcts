@@ -11,8 +11,8 @@ from joblib import Parallel, parallel_backend, delayed
 
 import gym_goddard.envs.goddard_discrete_env as goddard_discrete_env
 import gym_goddard.envs.goddard_env as goddard_env
-from islaMcts.action_selection_functions import continuous_default_policy, ucb1, genetic_policy
-from islaMcts.agent_factory import get_agent
+from islaMcts.utils.action_selection_functions import continuous_default_policy, ucb1, genetic_policy
+from islaMcts.utils.agent_factory import get_agent
 from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 from islaMcts.agents.parameters.pw_parameters import PwParameters

@@ -1,16 +1,11 @@
-from dataclasses import asdict
-
-import gym
 import numpy as np
 # import wandb
 from tqdm import tqdm
 
-from action_selection_functions import ucb1, continuous_default_policy, genetic_policy
+from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy
 from gym_goddard.envs.goddard_env import GoddardEnv
 from islaMcts.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
-from islaMcts.agents.optimal_agent import OptimalAgent
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-from islaMcts.utils import my_deepcopy
 
 time = np.arange(0, 0.4, 0.001)
 # wandb.init(project="mcts", entity="lorenzobonanni", monitor_gym=True)

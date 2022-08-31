@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch, MagicMock
 import numpy as np
 from parametrize import parametrize
 
-from islaMcts import utils
 from islaMcts.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash, \
     ActionNodeProgressiveWideningHash, StateNodeProgressiveWideningHash
 from islaMcts.agents.parameters.pw_parameters import PwParameters

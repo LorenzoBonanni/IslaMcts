@@ -4,7 +4,6 @@ from typing import Any
 
 import graphviz
 import numpy as np
-from graphviz import Digraph
 
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
@@ -85,7 +84,7 @@ class AbstractStateNode(ABC):
             depth += 1
         return reward
 
-    def visualize(self, n: int, father: str, g: Digraph):
+    def visualize(self, n: int, father: str, g: graphviz.Digraph):
         """
         add the current node to the graph and recursively adds child nodes to the graph
 

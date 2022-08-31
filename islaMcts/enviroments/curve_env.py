@@ -20,7 +20,7 @@ from numpy import ndarray
 
 
 class Car:
-    def __init__(self, x, y, angle=0.0, length=2, max_steering=30.0, max_acceleration=5.0):
+    def __init__(self, x, y, angle=0.0, length=2.0, max_steering=30.0, max_acceleration=5.0):
         self.angular_velocity = 0.0
         self.position = np.array([x, y]).astype(float)
         self.velocity = np.array([0.0, 0.0])
@@ -59,7 +59,7 @@ class Car:
 class CurveEnv(gym.Env):
     def __init__(self):
         self.car = None
-        self.dt = 0.06
+        self.dt = 0.05
         self.max_y = 30
         self.reset()
         # Position x, Position y, Velocity x, Velocity y, angular velocity
@@ -144,7 +144,7 @@ class CurveEnv(gym.Env):
         return_info: bool = False,
         options: Optional[dict] = None,
     ) -> ndarray:
-        self.car = Car(2, 2)
+        self.car = Car(2, 0.2)
         return self.car.state
 
     def render(self, mode="human") -> Optional[Union[RenderFrame, List[RenderFrame]]]:
@@ -156,7 +156,3 @@ class CurveEnv(gym.Env):
         # self.screen.blit(rotated, self.car.position * ppu - (rect.width / 2, rect.height / 2))
         # pygame.display.flip()
         pass
-
-
-if __name__ == '__main__':
-    env = CurveEnv()

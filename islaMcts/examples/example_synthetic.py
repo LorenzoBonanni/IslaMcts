@@ -1,14 +1,10 @@
 # import wandb
 from tqdm import tqdm
 
-from action_selection_functions import ucb1, continuous_default_policy, genetic_policy
-from gym_goddard.envs.goddard_env import GoddardEnv
-from islaMcts.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
+from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy
 from islaMcts.agents.mcts_hash import MctsHash
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
-from islaMcts.agents.parameters.pw_parameters import PwParameters
-from islaMcts.agents.random_agent import RandomAgent
-from islaMcts.syntetic_env import SyntheticEnv, SyntheticEnvDiscrete
+from islaMcts.enviroments.syntetic_env import SyntheticEnvDiscrete
 
 
 def main():

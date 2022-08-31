@@ -1,16 +1,11 @@
-import logging
 import math
-from collections import OrderedDict
 from typing import Any
 
 import numpy as np
 
-from islaMcts import utils
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-from rl_agents.agents.common.factory import safe_deepcopy_env
-
-# logger = logging.getLogger(__name__)
+from islaMcts.utils.mcts_utils import my_deepcopy
 
 
 class MctsActionProgressiveWideningHash(AbstractMcts):
@@ -27,11 +22,11 @@ class MctsActionProgressiveWideningHash(AbstractMcts):
 
         :return: the best action
         """
-        initial_env = safe_deepcopy_env(self.param.env)
+        initial_env = my_deepcopy(self.param.env)
         # self.param.env.save_last_observation()
         for s in range(self.param.n_sim):
             # logger.debug(f"SIM {s}")
-            self.param.env = safe_deepcopy_env(initial_env)
+            self.param.env = my_deepcopy(initial_env)
             # self.root.data = self.param.env.reset_sim()
             self.root.build_tree_state(self.param.max_depth)
 

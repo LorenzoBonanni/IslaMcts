@@ -20,8 +20,8 @@ class MctsParameters:
     # discount factor
     gamma: float
     rollout_selection_fn: Callable
-    # the name of the variable containing state information inside the environment
-    state_variable: str
+    # # the name of the variable containing state information inside the environment
+    # state_variable: str
     #  max number of steps during rollout
     max_depth: int
     # number of available actions

@@ -4,10 +4,10 @@ import gym
 import numpy as np
 from tqdm import tqdm
 
-from action_selection_functions import ucb1, continuous_default_policy
+from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy
 from islaMcts.agents.mcts import Mcts
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
-from islaMcts.utils import my_deepcopy
+from islaMcts.utils.mcts_utils import my_deepcopy
 
 action_string = {
     0: "LEFT",

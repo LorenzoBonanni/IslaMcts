@@ -1,11 +1,10 @@
-from collections import OrderedDict
 from typing import Any
 
 import numpy as np
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
-import islaMcts.utils as utils
+import islaMcts.utils.mcts_utils as utils
 
 
 class Mcts(AbstractMcts):
