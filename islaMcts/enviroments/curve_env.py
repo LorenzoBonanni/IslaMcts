@@ -18,12 +18,10 @@ from scipy.spatial import distance
 
 
 class Car:
-    def __init__(self, x, y, angle=0):
+    def __init__(self, x, y, angle=90):
         self.max_angle = 180
         self.min_angle = 0
         self.position = np.array([x, y]).astype(float)
-        # velocity +5 a -5
-        # angle -45 a 45
         self.velocity = 5
         self.angle = angle
         self.max_velocity = 10.0
@@ -32,19 +30,19 @@ class Car:
         # Position x, Position y, velocity, angle
         self.state = np.array([*self.position, self.velocity, self.angle])
 
-    def update(self, velocity, angle, dt):
+    def update(self, acceleration, angle, dt):
         # update velocity
-        self.velocity += velocity
+        self.velocity += acceleration
         if self.velocity > self.max_velocity:
             self.velocity = self.max_velocity
-        if self.velocity < 0:
+        if self.velocity < self.min_velocity:
             self.velocity = 0
 
         # update angle
         self.angle += angle
         if self.angle > self.max_angle:
             self.angle = self.max_angle
-        if self.angle < 0:
+        if self.angle < self.min_angle:
             self.angle = 0
 
         vel_x = cos(math.radians(self.angle)) * self.velocity
@@ -63,46 +61,49 @@ class CurveEnv(gym.Env):
         self.dt = 1
         self.target_x = 30
         self.reset()
-        # Position x, Position y, Velocity x, Velocity y, angular velocity
+        # Position x, Position y, Velocity , angle
         self.observation_space = gym.spaces.Box(
             low=np.array((0, 0, 0, 0)),
-            high=np.array((32, 32, 150, 360)),
+            high=np.array((32, 32, 10, 180)),
             shape=(4,),
             dtype=float
         )
         # acceleration, steering
-        # acceleration 0 <-> 5
-        # steering -30 <-> 30
+        # acceleration -5 <-> 5
+        # steering -45 <-> 45
         self.action_space = gym.spaces.Box(
-            low=np.array([-25, -30]),
-            high=np.array([25, 30]),
+            low=np.array([-5, -45]),
+            high=np.array([5, 45]),
             shape=(2,),
+            dtype=float
         )
 
     @staticmethod
     def higher_bound(x):
+        # OTHER: f(x)=7+log(5,x-0.1808569375707)+15.9825372164779
+
         try:
             # f(x) = 7 + log(2, x - 0.1808569375707) + 0.9825372164779
-            return 7 + log(x - 0.1808569375707, 2) + 1.4825372164779
+            return 7 + log(x - 0.1808569375707, 2) + 15.4825372164779
         except ValueError:
             return 0
 
     @staticmethod
     def lower_bound(x):
+        # OTHER: g(x)=7+log(5,((1)/(4)) (x-2.7069655165562))+14.7939060040875
         try:
             # g(x) = 7 + log(2, ((1) / (4))(x - 4.5852507647728)) + 0.1361611060361
-            return 7 + log((1 / 4) * (x - 4.5852507647728), 2) + 0.6361611060361
+            return 7 + log((1 / 4) * (x - 2), 2) + 15.2
         except ValueError:
             return 0
 
     def step(self, action: np.ndarray) -> tuple[ndarray, int, bool, None]:
         self.n_step += 1
-        velocity = action[0]
+        acceleration = action[0]
         angle = action[1]
-        self.car.update(velocity, angle, self.dt)
+        self.car.update(acceleration, angle, self.dt)
         x_car, y_car = self.car.position
         WINNING_REWARD = 100
-        LIVING_PENALTY = -0.3
         LOSING_REWARD = -1000
         MAX_DISTANCE = 30.384864653310537
 
@@ -134,5 +135,5 @@ class CurveEnv(gym.Env):
             return_info: bool = False,
             options: Optional[dict] = None,
     ) -> ndarray:
-        self.car = Car(2, 0.1)
+        self.car = Car(1, 0.1)
         return self.car.state
