@@ -137,8 +137,15 @@ def main():
             action = agent.fit()
             observation, reward, done, extra = env.step(action)
             total_reward += reward
+            wandb.log(
+                {"total_reward": total_reward}
+            )
         rewards.append(total_reward)
-    wandb.log("mean_reward", np.mean(rewards))
+    wandb.log(
+        {"mean_reward": np.mean(rewards),
+         }
+    )
+    wandb.log({})
 
 
 if __name__ == '__main__':

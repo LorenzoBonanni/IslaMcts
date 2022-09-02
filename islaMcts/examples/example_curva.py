@@ -1,10 +1,10 @@
 import numpy as np
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, animation
 
 from islaMcts.enviroments.curve_env import CurveEnv
-from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy
-from islaMcts.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
-from islaMcts.agents.parameters.pw_parameters import PwParameters
+# from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy, genetic_policy
+# from islaMcts.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
+# from islaMcts.agents.parameters.pw_parameters import PwParameters
 
 x = np.linspace(-20, 32, 100)
 
@@ -12,61 +12,71 @@ x = np.linspace(-20, 32, 100)
 higher_y = [CurveEnv.higher_bound(n) for n in x]
 lower_y = [CurveEnv.lower_bound(n) for n in x]
 
-# setting the axes at the centre
+x_states = []
+y_states = []
+
+
+
+env = CurveEnv()
+observation = env.reset()
+pos_x, pos_y, vel, angle = observation
+x_states.append(pos_x)
+y_states.append(pos_y)
+
+done = False
+# params = PwParameters(
+#     root_data=None,
+#     env=None,
+#     n_sim=3000,
+#     C=7.37,
+#     action_selection_fn=ucb1,
+#     gamma=0.18,
+#     rollout_selection_fn=continuous_default_policy,
+#     action_expansion_function=genetic_policy(0.5, continuous_default_policy, 72),
+#     max_depth=255,
+#     n_actions=11,
+#     alpha=0,
+#     k=116
+# )
+total_reward = 0
+n_steps = 0
+
+# while not done:
+#     print(f"step: {n_steps}")
+#     # action = env.action_space.sample()
+#     params.env = env.unwrapped
+#     params.root_data = observation
+#     agent = MctsActionProgressiveWideningHash(
+#         param=params
+#     )
+#     action = agent.fit()
+#     observation, reward, done, extra = env.step(action)
+#     total_reward += reward
+#     pos_x, pos_y, vel_x, vel_y, angular_vel = observation
+#     x_states.append(pos_x)
+#     y_states.append(pos_y)
+#     n_steps += 1
+
+observation, reward, done, extra = env.step([0, 0])
+total_reward += reward
+pos_x, pos_y, vel, angle = observation
+x_states.append(pos_x)
+y_states.append(pos_y)
+
+print(f"REWARD: {total_reward}")
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
-plt.axis([0, 33, 0, 15])
+plt.axis([-1, 33, 0, 15])
 ax.spines['left'].set_position('center')
 ax.spines['bottom'].set_position('zero')
 ax.spines['right'].set_color('none')
 ax.spines['top'].set_color('none')
 ax.xaxis.set_ticks_position('bottom')
 ax.yaxis.set_ticks_position('left')
-
-
-x_states = []
-y_states = []
-env = CurveEnv()
-observation = env.reset()
-pos_x, pos_y, vel_x, vel_y, angular_vel = observation
-x_states.append(pos_x)
-y_states.append(pos_y)
-
-done = False
-params = PwParameters(
-        root_data=None,
-        env=None,
-        n_sim=10000,
-        C=0.5,
-        action_selection_fn=ucb1,
-        gamma=0.9,
-        rollout_selection_fn=continuous_default_policy,
-        action_expansion_function=continuous_default_policy,
-        state_variable="_state",
-        max_depth=500,
-        n_actions=11,
-        alpha=0,
-        k=50
-    )
-total_reward = 0
-while not done:
-    # action = env.action_space.sample()
-    params.env = env.unwrapped
-    params.root_data = observation
-    agent = MctsActionProgressiveWideningHash(
-        param=params
-    )
-    action = agent.fit()
-    observation, reward, done, extra = env.step(action)
-    total_reward+=reward
-    pos_x, pos_y, vel_x, vel_y, angular_vel = observation
-    x_states.append(pos_x)
-    y_states.append(pos_y)
-
-
-# plot the road
 plt.plot(x, higher_y, 'r')
 plt.plot(x, lower_y, 'b')
-# plot the car trajectory
-plt.plot(x_states, y_states, 'g--')
+ax.plot(x_states, y_states, 'g--')
 plt.show()
+
+# scatter ultima posizione ultima posizione rollout
+# plot percorsi

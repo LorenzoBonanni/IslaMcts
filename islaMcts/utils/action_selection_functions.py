@@ -4,7 +4,7 @@ import random
 import gym
 import numpy as np
 from scipy.spatial import distance
-
+from shapely.geometry import Polygon
 from islaMcts.agents.abstract_mcts import AbstractStateNode
 
 
@@ -57,10 +57,12 @@ def genetic_policy(epsilon, default_policy, n_samples):
     def policy(node: AbstractStateNode):
         action_space = node.param.env.action_space
         if node.ns == 0:
-            if action_space.low < 0:
-                return (action_space.high + action_space.low) / 2
-            else:
-                return (action_space.high - action_space.low) / 2
+            high = action_space.high
+            low = action_space.low
+            center = np.zeros(high.shape)
+            for i in range(len(high)):
+                center[i] = np.median([high[i], low[i]])
+            return center
         elif node.ns == 1:
             return random.choices([action_space.high, action_space.low])[0]
         elif node.ns == 2:
@@ -74,26 +76,23 @@ def genetic_policy(epsilon, default_policy, n_samples):
                 actions = [node for node in node.actions.values()]
                 actions.sort(key=lambda n: n.q_value)
                 best_action = actions[0].data
-                if best_action > actions[1].data:
-                    space = gym.spaces.Box(
-                        low=actions[1].data,
-                        high=best_action,
-                        shape=action_space.shape,
-                        dtype=action_space.dtype
-                    )
+                second_best = actions[1].data
+                # compute euclidian distance with respect to the low point of the action space
+                mht_best_action = distance.cityblock(action_space.low, best_action)
+                mht_second_best_action = distance.cityblock(action_space.low, second_best)
+                # the point nearer to the low is the low point of the new action space
+                if mht_best_action >= mht_second_best_action:
+                    high = best_action
+                    low = second_best
                 else:
-                    space = gym.spaces.Box(
-                        low=best_action,
-                        high=actions[1].data,
-                        shape=action_space.shape,
-                        dtype=action_space.dtype
-                    )
+                    high = second_best
+                    low = best_action
                 # hybrid action between two best actions
                 # sample random between the two best actions and then choose the one nearer to the best
                 best_dist = np.inf
                 best_found = None
-                for s in range(n_samples):
-                    sample = space.sample()
+                for _ in range(n_samples):
+                    sample = np.random.uniform(low=low, high=high, size=high.shape)
                     dist = distance.euclidean(best_action, sample)
                     if dist < best_dist:
                         best_dist = dist
