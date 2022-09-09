@@ -2,9 +2,29 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from islaMcts.enviroments.curve_env import CurveEnv
+
 plt.ion()
 plt.show()
 x = np.linspace(-1, 32, 100)
+
+
+def plot_trajectory():
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    plt.axis([-1, 33, 0, 33])
+    ax.spines['left'].set_position('center')
+    ax.spines['bottom'].set_position('zero')
+    ax.spines['right'].set_color('none')
+    ax.spines['top'].set_color('none')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    plt.plot(x, higher_y, 'r')
+    plt.plot(x, lower_y, 'b')
+    ax.plot(x_states, y_states, 'g--')
+    plt.draw()
+    plt.pause(0.5)
+    return fig
+
 
 # the function
 higher_y = [CurveEnv.higher_bound(n) for n in x]
@@ -25,6 +45,7 @@ total_reward = 0
 n_steps = 0
 print(f"X: {pos_x}, Y:{pos_y}, vel:{vel}, angle:{angle}")
 fig = None
+plot_trajectory()
 while not done:
     acceleration = float(input("Acceleration? [-5, +5] "))
     input_angle = float(input("Angle? [-45, +45] "))
@@ -35,21 +56,6 @@ while not done:
     total_reward += reward
     x_states.append(pos_x)
     y_states.append(pos_y)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    plt.axis([-1, 33, 0, 33])
-    ax.spines['left'].set_position('center')
-    ax.spines['bottom'].set_position('zero')
-    ax.spines['right'].set_color('none')
-    ax.spines['top'].set_color('none')
-    ax.xaxis.set_ticks_position('bottom')
-    ax.yaxis.set_ticks_position('left')
-    plt.plot(x, higher_y, 'r')
-    plt.plot(x, lower_y, 'b')
-    ax.plot(x_states, y_states, 'g--')
-    plt.draw()
-    plt.pause(0.5)
-
+    fig = plot_trajectory()
 fig.savefig('trajectory.png')
 print(f"REWARD: {total_reward}")
