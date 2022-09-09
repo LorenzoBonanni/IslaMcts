@@ -10,7 +10,7 @@ from islaMcts.agents.abstract_mcts import AbstractStateNode
 from islaMcts.agents.mcts_action_progressive_widening_hash import StateNodeProgressiveWideningHash, \
     ActionNodeProgressiveWideningHash
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-from islaMcts.enviroments.curve_env import CurveEnv
+from islaMcts.environments.curve_env import CurveEnv
 
 
 def ucb1(node: AbstractStateNode):
@@ -109,7 +109,7 @@ def genetic_policy(epsilon, default_policy, n_samples):
     return policy
 
 
-def voo(epsilon, default_policy, n_samples, max_try):
+def voo(epsilon, default_policy, n_samples, max_try=5000):
     epsilon = epsilon
     n_samples = n_samples
     default_policy = default_policy
