@@ -130,7 +130,8 @@ def voo(epsilon, default_policy, n_samples, max_try=5000):
         sampled_actions = []
         sampled_distances = []
         for _ in range(n_samples):
-            n_try, a_tried, d_tried = 0, np.zeros((max_try+1, *parent_node.param.env.action_space.shape)), np.zeros((max_try, 1))
+            n_try, a_tried, d_tried = 0, np.zeros((max_try + 1, *parent_node.param.env.action_space.shape)), np.zeros(
+                (max_try, 1))
             while True:
                 sample = np.random.uniform(
                     low=parent_node.param.env.action_space.low,

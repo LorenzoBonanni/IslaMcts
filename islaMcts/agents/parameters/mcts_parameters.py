@@ -26,3 +26,5 @@ class MctsParameters:
     max_depth: int
     # number of available actions
     n_actions: Union[None, int]
+    x_values: list
+    y_values: list

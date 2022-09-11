@@ -22,15 +22,16 @@ class MctsActionProgressiveWideningHash(AbstractMcts):
 
         :return: the best action
         """
-        initial_env = my_deepcopy(self.param.env)
-        # self.param.env.save_last_observation()
+        initial_env = my_deepcopy(self.param.env, self.param.env)
         for s in range(self.param.n_sim):
-            # logger.debug(f"SIM {s}")
-            self.param.env = my_deepcopy(initial_env)
-            # self.root.data = self.param.env.reset_sim()
+            self.param.env = my_deepcopy(initial_env, self.param.env)
+            self.param.x_values = []
+            self.param.y_values = []
             self.root.build_tree_state(self.param.max_depth)
 
-        # self.param.env.reset_sim()
+            # TODO: THINGS FOR DEBUG
+            self.trajectories_x.append([self.param.root_data[0], *self.param.x_values])
+            self.trajectories_y.append([self.param.root_data[1], *self.param.y_values])
 
         # compute q_values
         self.q_values = np.array([node.q_value for node in self.root.actions.values()])
@@ -54,6 +55,9 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
         :param max_depth:  max depth of simulation
         :return:
         """
+        # TODO: THINGS FOR DEBUG
+        self.param.x_values.append(self.data[0])
+        self.param.y_values.append(self.data[1])
         # SELECTION
         if len(self.actions) == 0 or len(self.actions) <= math.ceil(self.param.k * (self.ns ** self.param.alpha)):
             action = self.param.action_expansion_function(self)

@@ -2,26 +2,15 @@ import pickle
 from copy import deepcopy
 from pickle import PicklingError
 
-from collections.abc import Mapping
+import gym
 
 
-class LazyDict(Mapping):
-    def __init__(self, *args, **kw):
-        self._raw_dict = dict(*args, **kw)
-
-    def __getitem__(self, key):
-        func, arg = self._raw_dict.__getitem__(key)
-        return func(arg)
-
-    def __iter__(self):
-        return iter(self._raw_dict)
-
-    def __len__(self):
-        return len(self._raw_dict)
-
-
-def my_deepcopy(obj):
+def my_deepcopy(initial_env: gym.Env, curr_env: gym.Env):
     try:
-        return pickle.loads(pickle.dumps(obj))
+        new_env = pickle.loads(pickle.dumps(initial_env))
+
     except PicklingError:
-        return deepcopy(obj)
+        new_env = deepcopy(initial_env)
+
+    new_env.action_space = curr_env.action_space
+    return new_env

@@ -1,8 +1,12 @@
 import argparse
+import os
+import random
 
+import gym
 import numpy as np
+from gym.spaces import Discrete
+
 import wandb
-from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy, genetic_policy
 from islaMcts.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
 from islaMcts.agents.mcts_double_progressive_widening_hash import MctsDoubleProgressiveWideningHash
 from islaMcts.agents.mcts_hash import MctsHash
@@ -10,8 +14,9 @@ from islaMcts.agents.mcts_state_progressive_widening_hash import MctsStateProgre
 from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-from islaMcts.enviroments.curve_env import CurveEnv
-from islaMcts.utils.mcts_utils import LazyDict
+from islaMcts.environments.curve_env import DiscreteCurveEnv, CurveEnv
+from islaMcts.environments.utils.curve_utils import plot_final_trajectory, plot_simulation_trajectory
+from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy, genetic_policy, voo
 
 
 def argument_parser():
@@ -33,22 +38,29 @@ def argument_parser():
     parser.add_argument('--epsilon', default=0.7, type=float, help='epsilon value for epsilon greedy strategies')
     parser.add_argument('--genetic_default', default="random", type=str,
                         help='the default policy for the genetic algorithm')
-    parser.add_argument('--genetic_n_sample', default=5, type=int,
-                        help='the number of samples taken by the genetic algorithm')
+    parser.add_argument('--n_sample', default=5, type=int,
+                        help='the number of samples taken by the genetic algorithm or by voo')
+    parser.add_argument('--n_episodes', default=1, type=int,
+                        help='the number of episodes for each experiment')
     return parser
 
 
 def get_function(function_name, genetic_default=None):
     dict_args = args.__dict__
     functions = {
-            "ucb": ucb1,
-            "random": continuous_default_policy,
-            "genetic": genetic_policy(
-                epsilon=dict_args["epsilon"],
-                default_policy=genetic_default,
-                n_samples=dict_args["genetic_n_sample"]
-            )
-        }
+        "ucb": ucb1,
+        "random": continuous_default_policy,
+        "genetic": genetic_policy(
+            epsilon=dict_args["epsilon"],
+            default_policy=genetic_default,
+            n_samples=dict_args["n_sample"]
+        ),
+        "voo": voo(
+            epsilon=dict_args["epsilon"],
+            default_policy=genetic_default,
+            n_samples=dict_args["n_sample"]
+        )
+    }
     return functions[function_name]
 
 
@@ -66,7 +78,9 @@ def create_agent():
                 gamma=dict_args["gamma"],
                 rollout_selection_fn=get_function(dict_args["rollout"]),
                 max_depth=dict_args["max_depth"],
-                n_actions=dict_args["n_actions"]
+                n_actions=dict_args["n_actions"],
+                x_values=None,
+                y_values=None
             )
             return MctsHash(param)
         case "apw":
@@ -83,7 +97,9 @@ def create_agent():
                 n_actions=dict_args["n_actions"],
                 alpha=dict_args["alpha1"],
                 k=dict_args["k1"],
-                action_expansion_function=get_function(dict_args["ae"], genetic_default=default_genetic)
+                action_expansion_function=get_function(dict_args["ae"], genetic_default=default_genetic),
+                x_values=None,
+                y_values=None
             )
             return MctsActionProgressiveWideningHash(param)
         case "spw":
@@ -99,7 +115,9 @@ def create_agent():
                 n_actions=dict_args["n_actions"],
                 alpha=dict_args["alpha1"],
                 k=dict_args["k1"],
-                action_expansion_function=get_function(dict_args["ae"])
+                action_expansion_function=get_function(dict_args["ae"]),
+                x_values=None,
+                y_values=None
             )
             return MctsStateProgressiveWideningHash(param)
         case "dpw":
@@ -117,39 +135,91 @@ def create_agent():
                 kApw=dict_args["k1"],
                 alphaSpw=dict_args["alpha2"],
                 kSpw=dict_args["k2"],
+                x_values=None,
+                y_values=None
             )
             return MctsDoubleProgressiveWideningHash(param)
 
 
+def get_group_name():
+    dict_args = args.__dict__
+    agent_name = dict_args["algorithm"]
+    group_name = {
+        "vanilla": f"{agent_name}_{dict_args['rollout']}",
+        "apw": f"{agent_name}_{dict_args['rollout']}_{dict_args['ae']}",
+        "spw": f"{agent_name}_{dict_args['rollout']}",
+        "dpw": f"{agent_name}_{dict_args['rollout']}_{dict_args['ae']}",
+    }
+    return group_name[agent_name]
+
+
 def main():
-    # env = gym.make(dict_args["environment"])
+    dict_args = args.__dict__
     rewards = []
-    for _ in range(5):
-        env = CurveEnv()
-        observation = env.reset()
-        done = False
-        total_reward = 0
-        while not done:
-            # action = env.action_space.sample()
-            agent = create_agent()
-            agent.param.env = env.unwrapped
-            agent.param.root_data = observation
-            action = agent.fit()
-            observation, reward, done, extra = env.step(action)
-            total_reward += reward
+    # os.environ["WANDB_RUN_GROUP"] = get_group_name()
+    wandb.init(config=dict_args, entity="lorenzobonanni", project="car-game", reinit=False)
+    # env = gym.make(dict_args["environment"]).unwrapped
+    env = DiscreteCurveEnv([5, 19])
+    # env = CurveEnv()
+    observation = env.reset()
+    np.random.seed(1)
+    random.seed(1)
+    env.action_space.seed(1)
+    done = False
+    total_reward = 0
+    x_states, y_states = [], []
+    n_steps = 0
+    points_x, points_y = [], []
+    while not done:
+        agent = create_agent()
+        agent.param.env = env.unwrapped
+        agent.param.root_data = observation
+        agent.root.data = observation
+        action = agent.fit()
+        observation, reward, done, extra = env.step(action)
+        total_reward += reward
+        x_states.append(observation[0])
+        y_states.append(observation[1])
+        points_x.extend(agent.trajectories_x)
+        points_y.extend(agent.trajectories_y)
+        n_steps += 1
+
+        if n_steps >= 1000:
+            rewards[-1] = -1000
+            break
+
+        if isinstance(env.action_space, Discrete):
+            action = env.actions[action]
+        wandb.log(
+            {
+                "reward": reward,
+                "velocity": observation[2],
+                "angle": observation[3],
+                "acceleration": action[0],
+                "angle_change": action[1]
+             }
+        )
+        if n_steps == 1:
             wandb.log(
-                {"total_reward": total_reward}
+                {
+                    "simTrajectory0": wandb.Image(plot_simulation_trajectory(points_x, points_y))
+                }
             )
-        rewards.append(total_reward)
     wandb.log(
-        {"mean_reward": np.mean(rewards),
+        {
+            "total_reward": total_reward,
+            "final_trajectory": wandb.Image(plot_final_trajectory(x_states, y_states)),
+            "n_steps": n_steps,
+            "simulation_trajectory": wandb.Image(plot_simulation_trajectory(points_x, points_y))
          }
     )
-    wandb.log({})
+    rewards.append(total_reward)
+    wandb.log(
+        {"mean_reward": np.mean(rewards)}
+    )
 
 
 if __name__ == '__main__':
     global args
     args = argument_parser().parse_args()
-    wandb.init(config=args.__dict__, entity="lorenzobonanni")
     main()

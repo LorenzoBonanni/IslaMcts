@@ -1,11 +1,11 @@
 from gym.envs.registration import register
 
 register(
-    id='enviroments:CurveEnv-v0',
-    entry_point='CurveEnv',
+    id='CurveEnv-v0',
+    entry_point='islaMcts.environments.curve_env:CurveEnv',
 )
 
 register(
     id='CurveEnv-Discrete-v0',
-    entry_point='DiscreteCurveEnv',
+    entry_point='islaMcts.environments.curve_env:DiscreteCurveEnv',
 )

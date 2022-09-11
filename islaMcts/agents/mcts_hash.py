@@ -5,6 +5,7 @@ from rl_agents.agents.common.factory import safe_deepcopy_env
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
+from islaMcts.utils.mcts_utils import my_deepcopy
 
 
 class MctsHash(AbstractMcts):
@@ -19,20 +20,24 @@ class MctsHash(AbstractMcts):
             param=param
         )
 
-    def fit(self) -> int:
+    def fit(self) -> int | np.ndarray:
         """
         Starting method, builds the tree and then gives back the best action
 
         :return: the best action
         """
-        initial_env = safe_deepcopy_env(self.param.env)
-        # self.param.env.save_last_observation()
+        initial_env = my_deepcopy(self.param.env, self.param.env)
+
         for s in range(self.param.n_sim):
-            # self.param.env.reset_sim()
-            self.param.env = safe_deepcopy_env(initial_env)
+            self.param.env = my_deepcopy(initial_env, self.param.env)
+            self.param.x_values = []
+            self.param.y_values = []
             self.root.build_tree_state(self.param.max_depth)
 
-        # self.param.env.reset_sim()
+            # TODO: THINGS FOR DEBUG
+            self.trajectories_x.append([self.param.root_data[0], *self.param.x_values])
+            self.trajectories_y.append([self.param.root_data[1], *self.param.y_values])
+
 
         # compute q_values
         self.q_values = np.array([node.q_value for node in self.root.actions.values()])
@@ -58,6 +63,9 @@ class StateNodeHash(AbstractStateNode):
         :param max_depth:  max depth of simulation
         :return:
         """
+        # TODO: THINGS FOR DEBUG
+        self.param.x_values.append(self.data[0])
+        self.param.y_values.append(self.data[1])
         # SELECTION
         # to avoid biases if there are unvisited actions we sample randomly from them
         if 0 in self.visit_actions:

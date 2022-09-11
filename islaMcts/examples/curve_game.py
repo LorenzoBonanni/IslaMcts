@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from islaMcts.enviroments.curve_env import CurveEnv
+from islaMcts.environments.curve_env import CurveEnv
 
 plt.ion()
 plt.show()

@@ -9,13 +9,15 @@ from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
 
 class AbstractMcts(ABC):
-    __slots__ = "param", "root", "data", "q_values"
+    __slots__ = "param", "root", "data", "q_values", "trajectories_x", "trajectories_y"
 
     def __init__(self, param: MctsParameters):
         self.param: MctsParameters = param
         self.root: AbstractStateNode | None = None
         self.data: Any = None
         self.q_values = None
+        self.trajectories_x = []
+        self.trajectories_y = []
 
     @abstractmethod
     def fit(self) -> int | np.ndarray:
@@ -76,12 +78,19 @@ class AbstractStateNode(ABC):
         done = False
         reward = 0
         depth = 0
+        x_values = []
+        y_values = []
         while not done and depth < max_depth:
             sampled_action = self.param.rollout_selection_fn(env=curr_env, node=self)
 
             # execute action
             obs, reward, done, _ = curr_env.step(sampled_action)
+            x_values.append(obs[0])
+            y_values.append(obs[1])
             depth += 1
+
+        self.param.x_values.extend(x_values)
+        self.param.y_values.extend(y_values)
         return reward
 
     def visualize(self, n: int, father: str, g: graphviz.Digraph):

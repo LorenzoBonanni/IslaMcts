@@ -1,8 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from islaMcts.agents.abstract_mcts import AbstractStateNode
-from islaMcts.enviroments.curve_env import CurveEnv
+from islaMcts.agents.abstract_mcts import AbstractStateNode, AbstractMcts
+from islaMcts.environments.curve_env import CurveEnv
 
 
 def get_figure():
@@ -25,15 +25,13 @@ def get_figure():
     return fig, ax
 
 
-def plot_simulation_trajectory(root: AbstractStateNode):
-    # TODO rewrite method
-    pass
+def plot_simulation_trajectory(points_x: list, points_y: list):
     fig, ax = get_figure()
-    # for i in range(len(params.x_values)):
-    #     x_val = params.x_values[i]
-    #     y_val = params.y_values[i]
-    #     ax.plot(x_val, y_val, 'g--')
-    # return fig
+    for i in range(len(points_x)):
+        x_states = points_x[i]
+        y_states = points_y[i]
+        ax.plot(x_states, y_states, 'go', linestyle="-")
+    return fig
 
 
 def plot_final_trajectory(x_states, y_states):
