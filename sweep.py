@@ -1,11 +1,9 @@
 import argparse
 import os
-import random
 
-import gym
 import numpy as np
 from gym.spaces import Discrete
-
+import seaborn as sns
 import wandb
 from islaMcts.agents.mcts_action_progressive_widening_hash import MctsActionProgressiveWideningHash
 from islaMcts.agents.mcts_double_progressive_widening_hash import MctsDoubleProgressiveWideningHash
@@ -14,7 +12,7 @@ from islaMcts.agents.mcts_state_progressive_widening_hash import MctsStateProgre
 from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-from islaMcts.environments.curve_env import DiscreteCurveEnv, CurveEnv
+from islaMcts.environments.curve_env import CurveEnv
 from islaMcts.environments.utils.curve_utils import plot_final_trajectory, plot_simulation_trajectory
 from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy, genetic_policy, voo, \
     genetic_policy2
@@ -41,7 +39,7 @@ def argument_parser():
                         help='the default policy for the genetic algorithm')
     parser.add_argument('--n_sample', default=5, type=int,
                         help='the number of samples taken by the genetic algorithm or by voo')
-    parser.add_argument('--n_episodes', default=100, type=int,
+    parser.add_argument('--n_episodes', default=10, type=int,
                         help='the number of episodes for each experiment')
     return parser
 
@@ -229,7 +227,10 @@ def main():
         )
         rewards.append(total_reward)
     wandb.log(
-        {"mean_reward": np.mean(rewards)}
+        {
+            "mean_reward": np.mean(rewards),
+            "reward_distribution": wandb.Image(sns.histplot(rewards))
+        }
     )
 
 
