@@ -4,6 +4,7 @@ from typing import Any
 
 import graphviz
 import numpy as np
+from numpy import mean
 
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 
@@ -81,10 +82,13 @@ class AbstractStateNode(ABC):
         x_values = []
         y_values = []
         while not done and depth < max_depth:
-            sampled_action = self.param.rollout_selection_fn(env=curr_env, node=self)
+            sampled_action = self.param.rollout_selection_fn(node=self)
 
             # execute action
-            obs, reward, done, _ = curr_env.step(sampled_action)
+            vals = curr_env.step(sampled_action)
+            obs = vals[0]
+            reward = vals[1]
+            done = vals[2]
             x_values.append(obs[0])
             y_values.append(obs[1])
             depth += 1
@@ -120,6 +124,29 @@ class AbstractStateNode(ABC):
         # to avoid losing the updated n value every time the function end returns the most updated n value
         return n
 
+    def get_depth_max(self, depth: int = 0):
+        """
+        computes the max depth of the subtree starting from the current node
+        :param depth: initial depth
+        :return:
+        """
+        depth += 1
+        depths = []
+        for action_node in self.actions.values():
+            depths.append(action_node.get_depth_max(depth))
+        return max(depths) if len(depths) >= 1 else depth
+
+    def get_depth_mean(self, depth: int = 0):
+        """
+        computes the max depth of the subtree starting from the current node
+        :param depth: initial depth
+        :return:
+        """
+        depth += 1
+        depths = []
+        for action_node in self.actions.values():
+            depths.extend(action_node.get_depth_mean(depth))
+        return depths if len(depths) >= 1 else [depth]
 
 class AbstractActionNode(ABC):
     __slots__ = "data", "total", "na", "children", "param"
@@ -166,3 +193,26 @@ class AbstractActionNode(ABC):
             n = state_node.visualize(n, father, g)
         # to avoid losing the updated n value every time the function end returns the most updated n value
         return n
+
+    def get_depth_max(self, depth):
+        """
+        computes the max depth of the subtree starting from the current node
+        :param depth: initial depth
+        :return:
+        """
+        depth += 0
+        depths = []
+        for state_node in self.children.values():
+            depths.append(state_node.get_depth_max(depth))
+        return max(depths) if len(depths) >= 1 else depth
+
+    def get_depth_mean(self, depth=0, root=False):
+        depths = []
+        for state_node in self.children.values():
+            depths.extend(state_node.get_depth_mean(depth))
+        if root:
+            return mean(depths) if len(depths) >= 1 else depth
+        else:
+            return depths
+
+

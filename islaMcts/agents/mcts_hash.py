@@ -1,7 +1,6 @@
 from typing import Any
 
 import numpy as np
-from rl_agents.agents.common.factory import safe_deepcopy_env
 
 from islaMcts.agents.abstract_mcts import AbstractMcts, AbstractStateNode, AbstractActionNode
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
@@ -43,7 +42,7 @@ class MctsHash(AbstractMcts):
         self.q_values = np.array([node.q_value for node in self.root.actions.values()])
 
         # return the action with maximum q_value
-        max_q = max(self.q_values)
+        max_q = self.q_values.max()
 
         # get the children which has the maximum q_value
         max_children = list(filter(lambda c: c.q_value == max_q, list(self.root.actions.values())))

@@ -21,9 +21,9 @@ class Mcts(AbstractMcts):
 
         :return: the best action
         """
-        initial_env = utils.my_deepcopy(self.param.env)
+        initial_env = utils.my_deepcopy(self.param.env, self.param.env)
         for s in range(self.param.n_sim):
-            self.param.env = utils.my_deepcopy(initial_env)
+            self.param.env = utils.my_deepcopy(initial_env, self.param.env)
             self.root.build_tree_state(self.param.max_depth)
 
         # compute q_values
@@ -76,7 +76,10 @@ class ActionNode(AbstractActionNode):
         :param max_depth:  max depth of simulation
         :return:
         """
-        observation, instant_reward, terminal, _ = self.param.env.step(self.data)
+        vals = self.param.env.step(self.data)
+        observation = vals[0]
+        instant_reward = vals[1]
+        terminal = vals[2]
 
         # if the node is terminal back-propagate instant reward
         if terminal:

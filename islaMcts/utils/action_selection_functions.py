@@ -85,16 +85,16 @@ def genetic_policy(epsilon, default_policy, n_samples):
 
     def policy(node: AbstractStateNode):
         action_space = node.param.env.action_space
-        if node.ns == 0:
+        if len(node.actions) == 0:
             high = action_space.high
             low = action_space.low
             center = np.zeros(high.shape)
             for i in range(len(high)):
                 center[i] = np.median([high[i], low[i]])
             return center
-        elif node.ns == 1:
+        elif len(node.actions) == 1:
             return random.choices([action_space.high, action_space.low])[0]
-        elif node.ns == 2:
+        elif len(node.actions) == 2:
             if action_space.high.tobytes() in node.actions:
                 return action_space.low
             else:
@@ -108,8 +108,42 @@ def genetic_policy(epsilon, default_policy, n_samples):
 
     return policy
 
+def genetic_policy2(epsilon, default_policy):
+    epsilon = epsilon
+    default_policy = default_policy
 
-def voo(epsilon, default_policy, n_samples, max_try=5000):
+    def genetic(node: AbstractStateNode):
+        actions = list(node.actions.values())
+        actions.sort(key=lambda n: n.q_value)
+        best_action = actions[0].data
+        second_best = actions[1].data
+        best_found = np.mean([best_action, second_best], axis=0)
+        return best_found
+
+    def policy(node: AbstractStateNode):
+        p = np.random.random()
+        action_space = node.param.env.action_space
+        if len(node.actions) == 0:
+            high = action_space.high
+            low = action_space.low
+            return np.mean([low, high], axis=0)
+        elif len(node.actions) == 1:
+            return random.choices([action_space.high, action_space.low])[0]
+        elif len(node.actions) == 2:
+            if action_space.high.tobytes() in node.actions:
+                return action_space.low
+            else:
+                return action_space.high
+        else:
+            if p < 1-epsilon:
+                return default_policy(node)
+            else:
+                return genetic(node)
+
+    return policy
+
+
+def voo(epsilon, default_policy, n_samples, max_try=1000):
     epsilon = epsilon
     n_samples = n_samples
     default_policy = default_policy
@@ -130,8 +164,7 @@ def voo(epsilon, default_policy, n_samples, max_try=5000):
         sampled_actions = []
         sampled_distances = []
         for _ in range(n_samples):
-            n_try, a_tried, d_tried = 0, np.zeros((max_try + 1, *parent_node.param.env.action_space.shape)), np.zeros(
-                (max_try, 1))
+            n_try, a_tried, d_tried = 0, np.zeros((max_try + 1, *parent_node.param.env.action_space.shape)), np.zeros((max_try, 1))
             while True:
                 sample = np.random.uniform(
                     low=parent_node.param.env.action_space.low,
@@ -238,14 +271,14 @@ def grid_policy(prior_knowledge, n_actions):
     :return:
     """
     knowledge = prior_knowledge
-    n_actions = n_actions
 
-    def policy(env: gym.Env, node: AbstractStateNode, *args, **kwargs):
+    def policy(node: AbstractStateNode):
         """
         computes the best action based on the heuristic
         :return:
         """
-        state = env.__dict__[node.param.state_variable]
+        env = node.param.env
+        state = env.__dict__["s"]
         ks = np.array(knowledge[state])
 
         # to avoid biases if two or more actions have the same value we choose randomly between them

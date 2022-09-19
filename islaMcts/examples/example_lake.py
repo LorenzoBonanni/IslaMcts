@@ -4,7 +4,7 @@ import gym
 import numpy as np
 from tqdm import tqdm
 
-from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy
+from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy, grid_policy
 from islaMcts.agents.mcts import Mcts
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 from islaMcts.utils.mcts_utils import my_deepcopy
@@ -62,38 +62,37 @@ distances = {
     for r in range(4)
 }
 
-# rollout_fn = grid_policy(distances, n_actions)
-rollout_fn = continuous_default_policy
+rollout_fn = grid_policy(distances, n_actions)
+# rollout_fn = continuous_default_policy
 
 times = []
 rewards = []
 
 for _ in tqdm(range(100)):
-    real_env = gym.make("FrozenLake-v1", is_slippery=False)
+    real_env = gym.make("FrozenLake-v1", is_slippery=False).unwrapped
     observation = real_env.reset()
-    sim_env = my_deepcopy(real_env)
     parameters = MctsParameters(
                 C=0.5,
                 n_sim=100,
                 root_data=observation,
-                env=sim_env.unwrapped,
+                env=real_env,
                 action_selection_fn=ucb1,
-                max_depth=10000,
+                max_depth=1000,
                 gamma=1,
                 rollout_selection_fn=rollout_fn,
-                state_variable="s",
-                n_actions=sim_env.action_space.n
+                n_actions=real_env.action_space.n,
+                x_values=[],
+                y_values=[]
             )
     done = False
     start_time = time.time()
     while not done:
-        sim_env = my_deepcopy(real_env).unwrapped
-        parameters.env = sim_env
+        parameters.env = real_env
         agent = Mcts(
             param=parameters
         )
         action = agent.fit()
-        observation, reward, done, _ = real_env.step(action)
+        observation, reward, done, _, _ = real_env.step(action)
         rewards.append(reward)
         parameters.root_data = observation
     times.append(time.time() - start_time)
