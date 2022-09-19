@@ -39,7 +39,7 @@ def argument_parser():
                         help='the default policy for the genetic algorithm')
     parser.add_argument('--n_sample', default=5, type=int,
                         help='the number of samples taken by the genetic algorithm or by voo')
-    parser.add_argument('--n_episodes', default=10, type=int,
+    parser.add_argument('--n_episodes', default=100, type=int,
                         help='the number of episodes for each experiment')
     return parser
 
@@ -159,6 +159,7 @@ def get_group_name():
 def main():
     dict_args = args.__dict__
     rewards = []
+    n_actions = []
     os.environ["WANDB_RUN_GROUP"] = get_group_name()
     for _ in range(dict_args["n_episodes"]):
         wandb.init(config=dict_args, entity="lorenzobonanni", project="car-game", reinit=True)
@@ -180,24 +181,28 @@ def main():
             agent.param.root_data = observation
             agent.root.data = observation
             action = agent.fit()
+            n_actions.append(len(agent.root.actions))
             observation, reward, done, extra = env.step(action)
             if isinstance(env.action_space, Discrete):
                 action_node = agent.root.actions[action]
             else:
                 action_node = agent.root.actions[action.tobytes()]
+
+            # METRICS
             max_depth = action_node.get_depth_max(0)
             mean_depth = action_node.get_depth_mean(0, True)
-            total_reward += reward
             x_states.append(observation[0])
             y_states.append(observation[1])
             points_x.extend(agent.trajectories_x)
             points_y.extend(agent.trajectories_y)
             n_steps += 1
 
-            if n_steps >= 1000:
-                rewards[-1] = -1000
+            if n_steps >= 100:
+                reward = -1000
+                total_reward += reward
                 break
 
+            total_reward += reward
             if isinstance(env.action_space, Discrete):
                 action = env.actions[action]
             wandb.log(
@@ -208,7 +213,8 @@ def main():
                     "acceleration": action[0],
                     "angle_change": action[1],
                     "max_depth": max_depth,
-                    "mean_depth": mean_depth
+                    "mean_depth": mean_depth,
+                    "n_actions": len(agent.root.actions)
                 }
             )
             if n_steps == 1:
@@ -229,7 +235,8 @@ def main():
     wandb.log(
         {
             "mean_reward": np.mean(rewards),
-            "reward_distribution": wandb.Image(sns.histplot(rewards))
+            "reward_distribution": wandb.Image(sns.histplot(rewards)),
+            "mean_n_actions": np.mean(n_actions)
         }
     )
 
