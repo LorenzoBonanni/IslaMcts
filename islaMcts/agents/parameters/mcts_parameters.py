@@ -28,3 +28,4 @@ class MctsParameters:
     n_actions: Union[None, int]
     x_values: list
     y_values: list
+    depths: list

@@ -12,7 +12,7 @@ from islaMcts.agents.mcts_state_progressive_widening_hash import MctsStateProgre
 from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 from islaMcts.agents.parameters.pw_parameters import PwParameters
-from islaMcts.environments.curve_env import CurveEnv
+from islaMcts.environments.curve_env import CurveEnv, DiscreteCurveEnv
 from islaMcts.environments.utils.curve_utils import plot_final_trajectory, plot_simulation_trajectory
 from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy, genetic_policy, voo, \
     genetic_policy2
@@ -103,8 +103,7 @@ def create_agent():
                 k=dict_args["k1"],
                 action_expansion_function=get_function(dict_args["ae"], genetic_default=default_genetic),
                 x_values=None,
-                y_values=None,
-                depths=None
+                y_values=None
             )
             return MctsActionProgressiveWideningHash(param)
         case "spw":
@@ -122,8 +121,7 @@ def create_agent():
                 k=dict_args["k1"],
                 action_expansion_function=get_function(dict_args["ae"]),
                 x_values=None,
-                y_values=None,
-                depths=None
+                y_values=None
             )
             return MctsStateProgressiveWideningHash(param)
         case "dpw":
@@ -142,8 +140,7 @@ def create_agent():
                 alphaSpw=dict_args["alpha2"],
                 kSpw=dict_args["k2"],
                 x_values=None,
-                y_values=None,
-                depths=None
+                y_values=None
             )
             return MctsDoubleProgressiveWideningHash(param)
 
@@ -165,11 +162,11 @@ def main():
     rewards = []
     n_actions = []
     os.environ["WANDB_RUN_GROUP"] = get_group_name()
-    wandb.init(config=dict_args, entity="lorenzobonanni", project="car-game", reinit=True)
     for _ in range(dict_args["n_episodes"]):
+        wandb.init(config=dict_args, entity="lorenzobonanni", project="car-game", reinit=True)
         # env = gym.make(dict_args["environment"]).unwrapped
-        # env = DiscreteCurveEnv([5, 19])
-        env = CurveEnv()
+        env = DiscreteCurveEnv([5, 10])
+        # env = CurveEnv()
         observation = env.reset()
         # np.random.seed(1)
         # random.seed(1)
@@ -239,8 +236,7 @@ def main():
         rewards.append(total_reward)
     wandb.log(
         {
-            "mean_reward": np.mean(rewards),
-            "mean_n_actions": np.mean(n_actions)
+            "mean_reward": np.mean(rewards)
         }
     )
 

@@ -19,6 +19,7 @@ class AbstractMcts(ABC):
         self.q_values = None
         self.trajectories_x = []
         self.trajectories_y = []
+        self.param.depths = []
 
     @abstractmethod
     def fit(self) -> int | np.ndarray:
@@ -93,6 +94,7 @@ class AbstractStateNode(ABC):
             y_values.append(obs[1])
             depth += 1
 
+        self.param.depths.append(depth)
         self.param.x_values.extend(x_values)
         self.param.y_values.extend(y_values)
         return reward

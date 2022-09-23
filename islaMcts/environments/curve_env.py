@@ -33,8 +33,9 @@ class Car:
         self.state = np.array([*self.position, self.velocity, self.angle])
 
     def update(self, acceleration, angle, dt):
+        dt = 0.5
         # update velocity
-        self.velocity += acceleration
+        self.velocity += acceleration * dt
         if self.velocity > self.max_velocity:
             self.velocity = self.max_velocity
         if self.velocity < self.min_velocity:
@@ -47,8 +48,8 @@ class Car:
         if self.angle < self.min_angle:
             self.angle = 0
 
-        vel_x = cos(math.radians(self.angle)) * self.velocity
-        vel_y = sin(math.radians(self.angle)) * self.velocity
+        vel_x = cos(math.radians(self.angle)) * self.velocity * dt
+        vel_y = sin(math.radians(self.angle)) * self.velocity * dt
 
         self.position[0] += vel_x
         self.position[1] += vel_y
