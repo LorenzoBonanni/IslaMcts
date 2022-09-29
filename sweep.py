@@ -42,6 +42,8 @@ def argument_parser():
                         help='the number of samples taken by the genetic algorithm or by voo')
     parser.add_argument('--n_episodes', default=100, type=int,
                         help='the number of episodes for each experiment')
+    parser.add_argument('--group', default="", type=int,
+                        help='the group of the run')
     return parser
 
 
@@ -165,9 +167,9 @@ def main():
     dict_args = args.__dict__
     rewards = []
     n_actions = []
-    os.environ["WANDB_RUN_GROUP"] = "100_episodes_NAPW_large_curve_2"
+    os.environ["WANDB_RUN_GROUP"] = dict_args["group"]
     for ep in range(dict_args["n_episodes"]):
-        wandb.init(config=dict_args, entity="federico_bianchi", project="car_racing", reinit=True)
+        wandb.init(config=dict_args, entity="isla", project="car_racing_2", reinit=True)
         # env = gym.make(dict_args["environment"]).unwrapped
         # env = DiscreteCurveEnv([5, 19])
         env = CurveEnv()
