@@ -21,19 +21,18 @@ from scipy.spatial import distance
 
 class Car:
     def __init__(self, x, y, angle=90):
-        self.max_angle = 180
+        self.max_angle = 30
         self.min_angle = 0
         self.position = np.array([x, y]).astype(float)
-        self.velocity = 5
+        self.velocity = 15
         self.angle = angle
-        self.max_velocity = 10.0
+        self.max_velocity = 20.0
         self.min_velocity = 0.0
 
         # Position x, Position y, velocity, angle
         self.state = np.array([*self.position, self.velocity, self.angle])
 
     def update(self, acceleration, angle, dt):
-        dt = 0.5
         # update velocity
         self.velocity += acceleration * dt
         if self.velocity > self.max_velocity:
@@ -43,10 +42,11 @@ class Car:
 
         # update angle
         self.angle += angle
-        if self.angle > self.max_angle:
-            self.angle = self.max_angle
-        if self.angle < self.min_angle:
-            self.angle = 0
+        self.angle = self.angle % 360
+        # if self.angle > self.max_angle:
+        #     self.angle = self.max_angle
+        # if self.angle < self.min_angle:
+        #     self.angle = 0
 
         vel_x = cos(math.radians(self.angle)) * self.velocity * dt
         vel_y = sin(math.radians(self.angle)) * self.velocity * dt
@@ -62,9 +62,23 @@ class CurveEnv(gym.Env):
         pass
 
     def __init__(self):
+
+        self.gradient_1 = dict()
+        for idx in range(1, 29):
+            if idx >= 27:
+                self.gradient_1[idx] = 50
+            else:
+                self.gradient_1[idx] = 1.80 * idx
+
+        self.gradient_2 = copy.deepcopy(self.gradient_1)
+        idx = 29
+        for i in reversed(range(1, 27, 1)):
+            self.gradient_2[i] = 1.80 * idx
+            idx += 1
+
         self.n_step = 0
         self.car = None
-        self.dt = 1
+        self.dt = 0.5
         self.target_x = 30
         self.reset()
         # Position x, Position y, Velocity , angle
@@ -78,8 +92,8 @@ class CurveEnv(gym.Env):
         # acceleration -5 <-> 5
         # steering -45 <-> 45
         self.action_space = gym.spaces.Box(
-            low=np.array([-5., -45.]),
-            high=np.array([5., 45.]),
+            low=np.array([-5., -30.]),
+            high=np.array([5., 30.]),
             shape=(2,),
             dtype=float
         )
@@ -89,7 +103,11 @@ class CurveEnv(gym.Env):
         # OTHER: f(x)=7+log(5,x-0.1808569375707)+15.9825372164779
         try:
             # f(x)=7+log(2,x-0.1808569375707)+15.4825372164779
-            return 7 + log(x + 0.01, 2) + 15.4825372164779
+            # return 7 + log(x + 0.01, 2) + 15.4825372164779
+            # return -(1 / 2) * (x ** 2) + +28.3956737582293
+            # return -(1 / 40) * (x ** 2) + 27.5
+            return -(1 / 20) * (x ** 2) + 27.5
+
         except ValueError:
             return 0
 
@@ -98,7 +116,8 @@ class CurveEnv(gym.Env):
         # OTHER: g(x)=7+log(5,((1)/(4)) (x-2.7069655165562))+14.7939060040875
         try:
             # g(x)=7+log(2,((1)/(4)) (x-0.7961772381708))+17.1094871667719
-            return 7 + log((1 / 4) * (x - 1), 2) + 16.7
+            # return 7 + log((1 / 4) * (x - 1), 2) + 16.7
+            return -(x ** 2) + 27
         except ValueError:
             return 0
 
@@ -109,9 +128,9 @@ class CurveEnv(gym.Env):
         last_pos = copy.deepcopy(self.car.position)
         self.car.update(acceleration, angle, self.dt)
         x_car, y_car = self.car.position
-        WINNING_REWARD = 1000
+        WINNING_REWARD = 10000
         LOSING_REWARD = -1000
-        MAX_DISTANCE = 38.22316051819891
+        MAX_DISTANCE = 13.000384609695207
 
         # Verify if the car is in the curve
         # inside = lower <= y_car <= higher
@@ -129,12 +148,31 @@ class CurveEnv(gym.Env):
             terminal = True
             reward = LOSING_REWARD
         else:
-            if x_car >= self.target_x:
+            if 5.196 <= x_car <= 23.452 and y_car <= 0:
                 terminal = True
                 reward = WINNING_REWARD / self.n_step
             else:
                 terminal = False
-                reward = (1 - (distance.euclidean([x_car, y_car], [30, 25]) / MAX_DISTANCE)) / self.n_step
+                # if x_car < 0:
+                #     reward = (1 - (distance.euclidean([x_car, y_car], [0, 27.5]) / MAX_DISTANCE)) / self.n_step
+                # else:
+
+                if x_car < 0:
+                    if y_car <= 1:
+                        reward = self.gradient_1[1] / self.n_step
+                    elif y_car >= 27:
+                        reward = self.gradient_1[27] / self.n_step
+                    else:
+                        reward = self.gradient_1[int(y_car)] / self.n_step
+                else:
+                    if y_car <= 1:
+                        reward = self.gradient_2[1] / self.n_step
+                    elif y_car >= 27:
+                        reward = self.gradient_2[27] / self.n_step
+                    else:
+                        reward = self.gradient_2[int(y_car)] / self.n_step
+
+                # reward = (1 - (distance.euclidean([x_car, y_car], [6.5, 0]) / MAX_DISTANCE)) / self.n_step
                 # reward = 1 - (distance.euclidean([x_car, y_car], [30, 25]) / MAX_DISTANCE)
 
         return self.car.state, reward, terminal, None
@@ -146,7 +184,7 @@ class CurveEnv(gym.Env):
             return_info: bool = False,
             options: Optional[dict] = None,
     ) -> ndarray:
-        self.car = Car(0.5, 0.1)
+        self.car = Car(-10, 0.1)
         return self.car.state
 
 
@@ -165,7 +203,6 @@ class DiscreteCurveEnv(CurveEnv):
     def step(self, discrete_action: int) -> tuple[ndarray, int, bool, None]:
         action = np.array(self.actions[discrete_action])
         return super().step(action)
-
 
 # if __name__ == '__main__':
 #     state = np.array((11.714410786279766, 24.898901576502166, 4, 54))

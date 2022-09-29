@@ -1,17 +1,19 @@
 import numpy as np
-from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 from islaMcts.environments.curve_env import CurveEnv
 
 plt.ion()
 plt.show()
-x = np.linspace(-1, 32, 100)
+x = np.linspace(-40, 42, 500)
 
 
 def plot_trajectory():
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    plt.axis([-1, 33, 0, 33])
+    plt.axis([-40, 43, 0, 33])
     ax.spines['left'].set_position('center')
     ax.spines['bottom'].set_position('zero')
     ax.spines['right'].set_color('none')
@@ -21,6 +23,7 @@ def plot_trajectory():
     plt.plot(x, higher_y, 'r')
     plt.plot(x, lower_y, 'b')
     ax.plot(x_states, y_states, 'g--')
+    ax.scatter(x_states, y_states, color='green')
     plt.draw()
     plt.pause(0.5)
     return fig
@@ -47,8 +50,8 @@ print(f"X: {pos_x}, Y:{pos_y}, vel:{vel}, angle:{angle}")
 fig = None
 plot_trajectory()
 while not done:
-    acceleration = float(input("Acceleration? [-5, +5] "))
-    input_angle = float(input("Angle? [-45, +45] "))
+    acceleration = float(input("Acceleration? [-10, +10] "))
+    input_angle = float(input("Angle? [-30, +30] "))
 
     observation, reward, done, extra = env.step(np.array([acceleration, input_angle]))
     pos_x, pos_y, vel, angle = observation

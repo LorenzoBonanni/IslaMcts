@@ -13,7 +13,8 @@ from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 from islaMcts.agents.parameters.pw_parameters import PwParameters
 from islaMcts.environments.curve_env import CurveEnv, DiscreteCurveEnv
-from islaMcts.environments.utils.curve_utils import plot_final_trajectory, plot_simulation_trajectory
+from islaMcts.environments.utils.curve_utils import plot_final_trajectory, plot_simulation_trajectory, \
+    plot_distribution_of_rewards
 from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy, genetic_policy, voo, \
     genetic_policy2
 
@@ -41,6 +42,10 @@ def argument_parser():
                         help='the number of samples taken by the genetic algorithm or by voo')
     parser.add_argument('--n_episodes', default=100, type=int,
                         help='the number of episodes for each experiment')
+    parser.add_argument('--n_angles', default=7, type=int,
+                        help='the number of actions into which the angle will be discretized')
+    parser.add_argument('--n_accelerations', default=3, type=int,
+                        help='the number of actions into which the acceleration will be discretized')
     return parser
 
 
@@ -81,7 +86,7 @@ def create_agent():
                 gamma=dict_args["gamma"],
                 rollout_selection_fn=get_function(dict_args["rollout"]),
                 max_depth=dict_args["max_depth"],
-                n_actions=dict_args["n_actions"],
+                n_actions=dict_args["n_accelerations"] * dict_args["n_angles"],
                 x_values=None,
                 y_values=None,
                 depths=None
@@ -103,7 +108,8 @@ def create_agent():
                 k=dict_args["k1"],
                 action_expansion_function=get_function(dict_args["ae"], genetic_default=default_genetic),
                 x_values=None,
-                y_values=None
+                y_values=None,
+                depths=None
             )
             return MctsActionProgressiveWideningHash(param)
         case "spw":
@@ -161,11 +167,12 @@ def main():
     dict_args = args.__dict__
     rewards = []
     n_actions = []
-    os.environ["WANDB_RUN_GROUP"] = get_group_name()
-    for _ in range(dict_args["n_episodes"]):
-        wandb.init(config=dict_args, entity="lorenzobonanni", project="car-game", reinit=True)
+    # os.environ["WANDB_RUN_GROUP"] = get_group_name()
+    os.environ["WANDB_RUN_GROUP"] = "100_episodes_Best_Vanilla_large_curve_2_5x7"
+    for ep in range(dict_args["n_episodes"]):
+        wandb.init(config=dict_args, entity="federico_bianchi", project="car_racing", reinit=True)
         # env = gym.make(dict_args["environment"]).unwrapped
-        env = DiscreteCurveEnv([5, 10])
+        env = DiscreteCurveEnv([dict_args["n_accelerations"], dict_args["n_angles"]])
         # env = CurveEnv()
         observation = env.reset()
         # np.random.seed(1)
@@ -181,6 +188,7 @@ def main():
             agent.param.env = env.unwrapped
             agent.param.root_data = observation
             agent.root.data = observation
+
             action = agent.fit()
             n_actions.append(len(agent.root.actions))
             observation, reward, done, extra = env.step(action)
@@ -216,7 +224,8 @@ def main():
                     "max_depth": max_depth,
                     "mean_depth": mean_depth,
                     "n_actions": len(agent.root.actions),
-                    "n_steps_rollout": np.mean(agent.param.depths)
+                    "n_steps_rollout": np.mean(agent.param.depths),
+                    "n_episodes": ep
                 }
             )
             if n_steps == 1:
@@ -236,7 +245,10 @@ def main():
         rewards.append(total_reward)
     wandb.log(
         {
-            "mean_reward": np.mean(rewards)
+            "mean_reward": np.mean(rewards),
+            "max_reward": np.max(rewards),
+            "min_reward": np.min(rewards),
+            "Distribution_of_reward": wandb.Image(plot_distribution_of_rewards(rewards))
         }
     )
 
