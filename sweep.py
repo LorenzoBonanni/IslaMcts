@@ -13,7 +13,8 @@ from islaMcts.agents.parameters.dpw_parameters import DpwParameters
 from islaMcts.agents.parameters.mcts_parameters import MctsParameters
 from islaMcts.agents.parameters.pw_parameters import PwParameters
 from islaMcts.environments.curve_env import CurveEnv
-from islaMcts.environments.utils.curve_utils import plot_final_trajectory, plot_simulation_trajectory
+from islaMcts.environments.utils.curve_utils import plot_final_trajectory, plot_simulation_trajectory, \
+    plot_distribution_of_rewards
 from islaMcts.utils.action_selection_functions import ucb1, continuous_default_policy, genetic_policy, voo, \
     genetic_policy2
 
@@ -164,9 +165,9 @@ def main():
     dict_args = args.__dict__
     rewards = []
     n_actions = []
-    os.environ["WANDB_RUN_GROUP"] = get_group_name()
-    wandb.init(config=dict_args, entity="lorenzobonanni", project="car-game", reinit=True)
-    for _ in range(dict_args["n_episodes"]):
+    os.environ["WANDB_RUN_GROUP"] = "100_episodes_NAPW_large_curve_2"
+    for ep in range(dict_args["n_episodes"]):
+        wandb.init(config=dict_args, entity="federico_bianchi", project="car_racing", reinit=True)
         # env = gym.make(dict_args["environment"]).unwrapped
         # env = DiscreteCurveEnv([5, 19])
         env = CurveEnv()
@@ -240,6 +241,9 @@ def main():
     wandb.log(
         {
             "mean_reward": np.mean(rewards),
+            "max_reward": np.max(rewards),
+            "min_reward": np.min(rewards),
+            "Distribution_of_reward": wandb.Image(plot_distribution_of_rewards(rewards)),
             "mean_n_actions": np.mean(n_actions)
         }
     )
