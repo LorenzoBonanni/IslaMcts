@@ -24,7 +24,7 @@ class Car:
         self.max_angle = 30
         self.min_angle = 0
         self.position = np.array([x, y]).astype(float)
-        self.velocity = 15
+        self.velocity = 10.0
         self.angle = angle
         self.max_velocity = 20.0
         self.min_velocity = 0.0
@@ -106,7 +106,7 @@ class CurveEnv(gym.Env):
             # return 7 + log(x + 0.01, 2) + 15.4825372164779
             # return -(1 / 2) * (x ** 2) + +28.3956737582293
             # return -(1 / 40) * (x ** 2) + 27.5
-            return -(1 / 20) * (x ** 2) + 27.5
+            return -(1 / 50) * (x ** 2) + 27.5
 
         except ValueError:
             return 0
@@ -184,7 +184,7 @@ class CurveEnv(gym.Env):
             return_info: bool = False,
             options: Optional[dict] = None,
     ) -> ndarray:
-        self.car = Car(-10, 0.1)
+        self.car = Car(-7, 0.1)
         return self.car.state
 
 

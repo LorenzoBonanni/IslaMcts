@@ -50,7 +50,7 @@ print(f"X: {pos_x}, Y:{pos_y}, vel:{vel}, angle:{angle}")
 fig = None
 plot_trajectory()
 while not done:
-    acceleration = float(input("Acceleration? [-10, +10] "))
+    acceleration = float(input("Acceleration? [-5, +5] "))
     input_angle = float(input("Angle? [-30, +30] "))
 
     observation, reward, done, extra = env.step(np.array([acceleration, input_angle]))
