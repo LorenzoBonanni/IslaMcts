@@ -42,7 +42,7 @@ def argument_parser():
                         help='the number of samples taken by the genetic algorithm or by voo')
     parser.add_argument('--n_episodes', default=100, type=int,
                         help='the number of episodes for each experiment')
-    parser.add_argument('--group', default="", type=int,
+    parser.add_argument('--group', default="", type=str,
                         help='the group of the run')
     return parser
 
