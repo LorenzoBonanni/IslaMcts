@@ -46,6 +46,8 @@ def argument_parser():
                         help='the number of actions into which the angle will be discretized')
     parser.add_argument('--n_accelerations', default=3, type=int,
                         help='the number of actions into which the acceleration will be discretized')
+    parser.add_argument('--group', default="", type=str,
+                        help='the group of the run')
     return parser
 
 
@@ -168,9 +170,9 @@ def main():
     rewards = []
     n_actions = []
     # os.environ["WANDB_RUN_GROUP"] = get_group_name()
-    os.environ["WANDB_RUN_GROUP"] = "100_episodes_Best_Vanilla_large_curve_2_5x7"
+    os.environ["WANDB_RUN_GROUP"] = dict_args["group"]
     for ep in range(dict_args["n_episodes"]):
-        wandb.init(config=dict_args, entity="federico_bianchi", project="car_racing", reinit=True)
+        wandb.init(config=dict_args, entity="isla", project="car_racing_2", reinit=True)
         # env = gym.make(dict_args["environment"]).unwrapped
         env = DiscreteCurveEnv([dict_args["n_accelerations"], dict_args["n_angles"]])
         # env = CurveEnv()

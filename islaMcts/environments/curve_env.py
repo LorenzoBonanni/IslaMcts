@@ -24,7 +24,7 @@ class Car:
         self.max_angle = 30
         self.min_angle = 0
         self.position = np.array([x, y]).astype(float)
-        self.velocity = 10.0
+        self.velocity = 10
         self.angle = angle
         self.max_velocity = 20.0
         self.min_velocity = 0.0
@@ -62,9 +62,8 @@ class CurveEnv(gym.Env):
         pass
 
     def __init__(self):
-
         self.gradient_1 = dict()
-        for idx in range(1, 29):
+        for idx in range(20, 29):
             if idx >= 27:
                 self.gradient_1[idx] = 50
             else:
@@ -72,7 +71,7 @@ class CurveEnv(gym.Env):
 
         self.gradient_2 = copy.deepcopy(self.gradient_1)
         idx = 29
-        for i in reversed(range(1, 27, 1)):
+        for i in reversed(range(20, 27, 1)):
             self.gradient_2[i] = 1.80 * idx
             idx += 1
 
@@ -82,12 +81,12 @@ class CurveEnv(gym.Env):
         self.target_x = 30
         self.reset()
         # Position x, Position y, Velocity , angle
-        self.observation_space = gym.spaces.Box(
-            low=np.array((0., 0., 0., 0.)),
-            high=np.array((32., 32., 10., 180.)),
-            shape=(4,),
-            dtype=float
-        )
+        # self.observation_space = gym.spaces.Box(
+        #     low=np.array((0., 0., 0., 0.)),
+        #     high=np.array((32., 32., 10., 180.)),
+        #     shape=(4,),
+        #     dtype=float
+        # )
         # acceleration, steering
         # acceleration -5 <-> 5
         # steering -45 <-> 45
@@ -105,8 +104,8 @@ class CurveEnv(gym.Env):
             # f(x)=7+log(2,x-0.1808569375707)+15.4825372164779
             # return 7 + log(x + 0.01, 2) + 15.4825372164779
             # return -(1 / 2) * (x ** 2) + +28.3956737582293
-            # return -(1 / 40) * (x ** 2) + 27.5
             return -(1 / 50) * (x ** 2) + 27.5
+            # return -(1 / 20) * (x ** 2) + 27.5
 
         except ValueError:
             return 0
@@ -117,7 +116,7 @@ class CurveEnv(gym.Env):
         try:
             # g(x)=7+log(2,((1)/(4)) (x-0.7961772381708))+17.1094871667719
             # return 7 + log((1 / 4) * (x - 1), 2) + 16.7
-            return -(x ** 2) + 27
+            return -(1/50)*(3*(x ** 2)) + 27.3
         except ValueError:
             return 0
 
@@ -148,7 +147,7 @@ class CurveEnv(gym.Env):
             terminal = True
             reward = LOSING_REWARD
         else:
-            if 5.196 <= x_car <= 23.452 and y_car <= 0:
+            if x_car >= 9 and 20<= y_car <= 26:
                 terminal = True
                 reward = WINNING_REWARD / self.n_step
             else:
@@ -158,15 +157,15 @@ class CurveEnv(gym.Env):
                 # else:
 
                 if x_car < 0:
-                    if y_car <= 1:
-                        reward = self.gradient_1[1] / self.n_step
+                    if y_car <= 21:
+                        reward = self.gradient_1[20] / self.n_step
                     elif y_car >= 27:
                         reward = self.gradient_1[27] / self.n_step
                     else:
                         reward = self.gradient_1[int(y_car)] / self.n_step
                 else:
-                    if y_car <= 1:
-                        reward = self.gradient_2[1] / self.n_step
+                    if y_car <= 21:
+                        reward = self.gradient_2[20] / self.n_step
                     elif y_car >= 27:
                         reward = self.gradient_2[27] / self.n_step
                     else:
@@ -184,7 +183,7 @@ class CurveEnv(gym.Env):
             return_info: bool = False,
             options: Optional[dict] = None,
     ) -> ndarray:
-        self.car = Car(-7, 0.1)
+        self.car = Car(-11, 21)
         return self.car.state
 
 
@@ -203,16 +202,3 @@ class DiscreteCurveEnv(CurveEnv):
     def step(self, discrete_action: int) -> tuple[ndarray, int, bool, None]:
         action = np.array(self.actions[discrete_action])
         return super().step(action)
-
-# if __name__ == '__main__':
-#     state = np.array((11.714410786279766, 24.898901576502166, 4, 54))
-#     action = (5, -44)
-#     env = CurveEnv()
-#     env.reset()
-#     env.car.state = state
-#     env.car.position = state[:2]
-#     observation, reward, done, extra = env.step(np.array(action))
-#     print(
-#         f"TERMINAL: {done}",
-#         f"REWARD: {reward}"
-#     )

@@ -7,13 +7,13 @@ from islaMcts.environments.curve_env import CurveEnv
 
 plt.ion()
 plt.show()
-x = np.linspace(-40, 42, 500)
+x = np.linspace(-12, 12, 500)
 
 
 def plot_trajectory():
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    plt.axis([-40, 43, 0, 33])
+    plt.axis([-12, 12, 20, 33])
     ax.spines['left'].set_position('center')
     ax.spines['bottom'].set_position('zero')
     ax.spines['right'].set_color('none')
