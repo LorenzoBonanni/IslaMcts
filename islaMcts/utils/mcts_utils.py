@@ -2,7 +2,7 @@ import pickle
 from copy import deepcopy
 from pickle import PicklingError
 
-import gym
+import gymnasium as gym
 
 
 def my_deepcopy(initial_env: gym.Env, curr_env: gym.Env):

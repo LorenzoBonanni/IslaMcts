@@ -1,16 +1,9 @@
-import logging
 import random
-import timeit
 
-import gym
 import numpy as np
 from scipy.spatial import distance
-from shapely.geometry import Polygon
+
 from islaMcts.agents.abstract_mcts import AbstractStateNode
-from islaMcts.agents.mcts_action_progressive_widening_hash import StateNodeProgressiveWideningHash, \
-    ActionNodeProgressiveWideningHash
-from islaMcts.agents.parameters.pw_parameters import PwParameters
-from islaMcts.environments.curve_env import CurveEnv
 
 
 def ucb1(node: AbstractStateNode):

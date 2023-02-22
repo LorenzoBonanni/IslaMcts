@@ -3,20 +3,19 @@
 # -10 se va fuori
 import copy
 import itertools
-# x curve va da 0 a 20
-# y curve va da 0 a 20
-
 # f(x)=7+log(2,x-0.1808569375707)+0.9825372164779
 # g(x)=7+log(2,((1)/(4)) (x-4.5852507647728))+0.1361611060361
 import math
-from math import sin, cos, log
-from typing import Optional, Union, List, Iterable
+from math import sin, cos
+from typing import Optional
 
-import gym
+import gymnasium as gym
 import numpy as np
-from gym.core import RenderFrame
 from numpy import ndarray
-from scipy.spatial import distance
+
+
+# x curve va da 0 a 20
+# y curve va da 0 a 20
 
 
 class Car:
@@ -58,8 +57,6 @@ class Car:
 
 
 class CurveEnv(gym.Env):
-    def render(self, mode="human") -> Optional[Union[RenderFrame, List[RenderFrame]]]:
-        pass
 
     def __init__(self):
         self.gradient_1 = dict()

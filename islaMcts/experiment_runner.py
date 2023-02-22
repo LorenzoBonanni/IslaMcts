@@ -3,14 +3,12 @@ import logging
 import math
 import os
 
-import gym
+import gymnasium as gym
 import numpy as np
 import pandas as pd
 import wandb
 from joblib import Parallel, parallel_backend, delayed
 
-import gym_goddard.envs.goddard_discrete_env as goddard_discrete_env
-import gym_goddard.envs.goddard_env as goddard_env
 from islaMcts.utils.action_selection_functions import continuous_default_policy, ucb1, genetic_policy
 from islaMcts.utils.agent_factory import get_agent
 from islaMcts.agents.parameters.dpw_parameters import DpwParameters
