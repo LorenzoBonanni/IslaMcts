@@ -15,12 +15,12 @@ class MctsTest(AbstractMcts):
 
 class ActionNodeTest(AbstractActionNode):
 
-    def build_tree_action(self, max_depth: int) -> float:
+    def build_tree_action(self, curr_depth: int) -> float:
         pass
 
 
 class StateNodeTest(AbstractStateNode):
-    def build_tree_state(self, max_depth: int):
+    def build_tree_state(self, curr_depth: int):
         pass
 
 

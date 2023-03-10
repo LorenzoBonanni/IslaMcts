@@ -66,7 +66,7 @@ class AbstractStateNode(ABC):
         self.terminal_reward: float | None = None
 
     @abstractmethod
-    def build_tree_state(self, max_depth: int):
+    def build_tree_state(self, curr_depth: int):
         raise NotImplementedError
 
     def rollout(self, curr_depth: int) -> float:
@@ -79,14 +79,14 @@ class AbstractStateNode(ABC):
         curr_env = self.param.env
         done = False
         reward = 0
-        starting_depth = curr_depth
-        while not done and curr_depth < self.param.max_depth:
+        starting_depth = 0
+        while not done and curr_depth + starting_depth < self.param.max_depth:
             sampled_action = self.param.rollout_selection_fn(node=self)
             vals = curr_env.step(sampled_action)
             obs = vals[0]
-            reward += vals[1] * pow(self.param.gamma, curr_depth-starting_depth)
+            reward += vals[1] * pow(self.param.gamma, starting_depth)
             done = vals[2]
-            curr_depth += 1
+            starting_depth += 1
 
         return reward
 
@@ -156,11 +156,11 @@ class AbstractActionNode(ABC):
         return self.total / self.na
 
     @abstractmethod
-    def build_tree_action(self, max_depth: int) -> float:
+    def build_tree_action(self, curr_depth: int) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
 
-        :param max_depth:  max depth of simulation
+        :param curr_depth:  max depth of simulation
         :return:
         """
 

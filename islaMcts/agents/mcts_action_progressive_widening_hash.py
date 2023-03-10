@@ -49,10 +49,10 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
         super().__init__(data, param)
         self.visit_actions = {}
 
-    def build_tree_state(self, max_depth):
+    def build_tree_state(self, curr_depth):
         """
         go down the tree until a leaf is reached and do rollout from that
-        :param max_depth:  max depth of simulation
+        :param curr_depth:  max depth of simulation
         :return:
         """
         # TODO: THINGS FOR DEBUG
@@ -86,10 +86,10 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
 
 class ActionNodeProgressiveWideningHash(AbstractActionNode):
 
-    def build_tree_action(self, max_depth) -> float:
+    def build_tree_action(self, curr_depth) -> float:
         """
         go down the tree until a leaf is reached and do rollout from that
-        :param max_depth:  max depth of simulation
+        :param curr_depth:  max depth of simulation
         :return:
         """
         observation, instant_reward, terminal, _ = self.param.env.step(self.data)
@@ -118,7 +118,7 @@ class ActionNodeProgressiveWideningHash(AbstractActionNode):
                 state = StateNodeProgressiveWideningHash(data=observation, param=self.param)
                 self.children[obs_bytes] = state
                 # ROLLOUT
-                delayed_reward = self.param.gamma * state.rollout(max_depth)
+                delayed_reward = self.param.gamma * state.rollout(curr_depth)
 
                 # BACK-PROPAGATION
                 self.na += 1
@@ -128,7 +128,7 @@ class ActionNodeProgressiveWideningHash(AbstractActionNode):
                 return instant_reward + delayed_reward
             else:
                 # go deeper the tree
-                delayed_reward = self.param.gamma * state.build_tree_state(max_depth)
+                delayed_reward = self.param.gamma * state.build_tree_state(curr_depth)
 
                 # # BACK-PROPAGATION
                 self.total += (instant_reward + delayed_reward)
