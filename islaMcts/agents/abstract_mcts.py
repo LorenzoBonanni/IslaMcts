@@ -69,34 +69,25 @@ class AbstractStateNode(ABC):
     def build_tree_state(self, max_depth: int):
         raise NotImplementedError
 
-    def rollout(self, max_depth: int) -> float:
+    def rollout(self, curr_depth: int) -> float:
         """
         Play out until max depth or a terminal state is reached
 
-        :param max_depth: max depth of simulation
+        :param curr_depth: max depth of simulation
         :return: reward obtained from the state
         """
         curr_env = self.param.env
         done = False
         reward = 0
-        depth = 0
-        x_values = []
-        y_values = []
-        while not done and depth < max_depth:
+        starting_depth = curr_depth
+        while not done and curr_depth < self.param.max_depth:
             sampled_action = self.param.rollout_selection_fn(node=self)
-
-            # execute action
             vals = curr_env.step(sampled_action)
             obs = vals[0]
-            reward = vals[1]
+            reward += vals[1] * pow(self.param.gamma, curr_depth-starting_depth)
             done = vals[2]
-            x_values.append(obs[0])
-            y_values.append(obs[1])
-            depth += 1
+            curr_depth += 1
 
-        self.param.depths.append(depth)
-        self.param.x_values.extend(x_values)
-        self.param.y_values.extend(y_values)
         return reward
 
     def visualize(self, n: int, father: str, g: graphviz.Digraph):

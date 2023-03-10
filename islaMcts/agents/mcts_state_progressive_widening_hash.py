@@ -63,7 +63,7 @@ class StateNodeProgressiveWideningHash(AbstractStateNode):
         reward = child.build_tree_action(max_depth)
         self.ns += 1
         self.visit_actions[action] += 1
-        self.total += self.param.gamma * reward
+        self.total += reward
         return reward
 
 

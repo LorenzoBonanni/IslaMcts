@@ -62,9 +62,9 @@ class StateNodeHash(AbstractStateNode):
         :param max_depth:  max depth of simulation
         :return:
         """
-        # TODO: THINGS FOR DEBUG
-        self.param.x_values.append(self.data[0])
-        self.param.y_values.append(self.data[1])
+        # # TODO: THINGS FOR DEBUG
+        # self.param.x_values.append(self.data[0])
+        # self.param.y_values.append(self.data[1])
         # SELECTION
         # to avoid biases if there are unvisited actions we sample randomly from them
         if 0 in self.visit_actions:
@@ -78,7 +78,8 @@ class StateNodeHash(AbstractStateNode):
         reward = child.build_tree_action(max_depth)
         self.ns += 1
         self.visit_actions[action] += 1
-        self.total += self.param.gamma * reward
+        self.total += reward
+
         return reward
 
 
@@ -100,10 +101,8 @@ class ActionNodeHash(AbstractActionNode):
                 state = StateNodeHash(data=observation, param=self.param)
                 state.terminal = True
                 self.children[observation.tobytes()] = state
-            # ORIGINAL
             self.total += instant_reward
             self.na += 1
-            # MODIFIED
             state.ns += 1
             return instant_reward
         else:
@@ -114,7 +113,7 @@ class ActionNodeHash(AbstractActionNode):
                 state = StateNodeHash(data=observation, param=self.param)
                 self.children[observation.tobytes()] = state
                 # ROLLOUT
-                delayed_reward = self.param.gamma * state.rollout(max_depth)
+                delayed_reward = self.param.gamma * state.rollout(max_depth - 1)
 
                 # BACK-PROPAGATION
                 self.na += 1
@@ -124,7 +123,7 @@ class ActionNodeHash(AbstractActionNode):
                 return instant_reward + delayed_reward
             else:
                 # go deeper the tree
-                delayed_reward = self.param.gamma * state.build_tree_state(max_depth)
+                delayed_reward = self.param.gamma * state.build_tree_state(max_depth - 1)
 
                 # # BACK-PROPAGATION
                 self.total += (instant_reward + delayed_reward)
